@@ -1,11 +1,11 @@
-<template>
+<!-- <template>
   <el-container style="height: 100vh;">
     <el-header class="header">
       
       <div class="logo-container">
         <img src="/src/assets/HMOS_Logo_Icon.svg.png" alt="Logo 1">
         <img src="/src/assets/HarLogo.png" alt="Logo 2">
-        <h1> 鸿蒙 SDK 检测中心 (BETA)</h1>
+        <h1> 鸿 蒙 SDK 检 测 中 心 (BETA)</h1>
       </div>
       
     </el-header>
@@ -179,5 +179,165 @@ html, body {
     margin-left: 0; /* 左边距取消 */
     padding-top: 20px; /* 适当的顶部填充 */
   }
+}
+</style> -->
+
+<template>
+  <el-container style="height: 100vh;">
+    <el-header class="header">
+      <div class="logo-container">
+        <img src="/src/assets/HMOS_Logo_Icon.svg.png" alt="Logo 1">
+        <img src="/src/assets/HarLogo.png" alt="Logo 2">
+        <h1> 鸿 蒙 SDK 检 测 中 心 (BETA)</h1>
+      </div>
+    </el-header>
+    <el-container>
+      <el-aside width="200px" class="aside">
+        <el-menu :default-active="activeMenu" @select="handleMenuSelect" class="el-menu-vertical">
+          <el-menu-item index="home">HOME</el-menu-item>
+          <el-menu-item index="uploadSdk">上传sdk</el-menu-item>
+          <el-menu-item index="detectTask">检测任务</el-menu-item>
+          <el-menu-item index="sdkList">sdk列表</el-menu-item>
+          <el-menu-item index="permissionSettings">权限设置</el-menu-item>
+        </el-menu>
+      </el-aside>
+      <el-main class="main-container">
+        <router-view />
+      </el-main>
+    </el-container>
+  </el-container>
+</template>
+
+<script lang="ts">
+import { defineComponent, ref } from 'vue';
+import { useRouter } from 'vue-router';
+
+export default defineComponent({
+  name: 'App',
+  setup() {
+    const router = useRouter();
+    const activeMenu = ref('home');
+
+    const handleMenuSelect = (index: string) => {
+      if (index === 'home') {
+        router.push('/');
+      } else if (index === 'uploadSdk') {
+        router.push('/upload-sdk');
+      } else if (index === 'detectTask') {
+        router.push('/detect-tasks');
+      } else if (index === 'sdkList') {
+        router.push('/sdk-list');
+      } else if (index === 'permissionSettings') {
+        router.push('/permission-settings');
+      }
+      activeMenu.value = index;
+    };
+
+    return {
+      activeMenu,
+      handleMenuSelect,
+    };
+  },
+});
+</script>
+
+<style scoped>
+.header {
+  line-height: 60px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  background-color: #000103;
+  color: #ffffff;
+  text-align: left;
+  font-size: 24px;
+  margin: 0;
+  padding: 0;
+}
+.logo-container {
+  display: flex;
+  align-items: center;
+}
+.logo-container img {
+  height: 58px;
+  margin-left: 10px;
+}
+h1 {
+  margin-right: 20px;
+  flex-grow: 1;
+  text-align: right;
+  font-size: 22px;
+}
+.aside {
+position: fixed;
+top: 60px;
+left: 0;
+width: 200px;
+height: calc(100vh - 60px);
+background-color: #f6f8fa;
+padding: 0;
+border-right: 1px solid #d1d5da;
+overflow-y: auto;
+}
+.el-main {
+position: fixed;
+top: 60px;
+left: 200px;
+width: calc(100% - 200px);
+height: calc(100vh - 60px);
+margin-left: 0;
+padding: 20px;
+background-color: #ffffff;
+box-sizing: border-box;
+}
+.main-container {
+display: flex;
+flex-direction: column;
+}
+.el-container {
+height: 100%;
+margin: 0;
+padding: 0;
+display: flex;
+flex-direction: column;
+}
+.el-menu-vertical {
+border-right: none;
+}
+.el-menu-item {
+padding-left: 20px !important;
+}
+.el-menu-item:hover,
+.el-menu-item.is-active {
+background-color: #0366d6 !important;
+color: #ffffff 
+}
+.el-menu-item:hover {
+color: #ffffff !important;
+}
+body {
+margin: 0;
+padding: 0;
+}
+html, body {
+height: 100%;
+margin: 0;
+padding: 0;
+overflow-x: hidden;
+}
+#app {
+height: 100%;
+}
+@media (max-width: 768px) {
+.aside {
+position: static;
+width: 100%;
+top: 0;
+}
+.el-main {
+margin-left: 0;
+padding-top: 20px;
+}
 }
 </style>
