@@ -1,59 +1,60 @@
 <template>
-  <el-container style="height: 100vh; background-color: #f6f8fa;">
-    <el-main style="display: flex; justify-content: center; align-items: center;">
-      <div class="upload-form">
-        <el-form :model="form" :rules="rules" ref="formRef" label-width="120px">
-          <el-form-item label="SDK Name" prop="sdkName">
-            <el-input v-model="form.sdkName" placeholder="Enter SDK Name" />
-          </el-form-item>
-          <el-form-item label="Category" prop="category">
-            <el-select v-model="form.category" placeholder="Select Category">
-              <el-option label="生活服务" value="生活服务" />
-              <el-option label="安全" value="安全" />
-              <!-- Add other categories as needed -->
-            </el-select>
-          </el-form-item>
-          <el-form-item label="Icon File" prop="iconFile">
-            <el-upload
-              :file-list="iconFileList"
-              :before-upload="handleIconUpload"
-              :on-remove="handleIconRemove"
-              list-type="picture"
-              class="upload-demo"
-            >
-              <el-button size="small" type="primary">  Click to Upload</el-button>
-              <div slot="tip" class="el-upload__tip">  Only one file can be uploaded</div>
-            </el-upload>
-          </el-form-item>
-          <el-form-item label="HAR File" prop="harFile">
-            <el-upload
-              :file-list="harFileList"
-              :before-upload="handleHarUpload"
-              :on-remove="handleHarRemove"
-              class="upload-demo"
-            >
-              <el-button size="small" type="primary">Click to Upload</el-button>
-              <div slot="tip" class="el-upload__tip">Only one file can be uploaded</div>
-            </el-upload>
-          </el-form-item>
-          <el-form-item>
-            <el-button type="primary" @click="submitForm">Submit</el-button>
-          </el-form-item>
-        </el-form>
-      </div>
-    </el-main>
-  </el-container>
+  <el-dialog :visible.sync="dialogVisible" title="上传SDK" width="50%" :modal="true" :close-on-click-modal="false" :z-index="2000">
+    <el-form :model="form" :rules="rules" ref="formRef" label-width="120px">
+      <el-form-item label="SDK Name" prop="sdkName">
+        <el-input v-model="form.sdkName" placeholder="Enter SDK Name" />
+      </el-form-item>
+      <el-form-item label="Category" prop="category">
+        <el-select v-model="form.category" placeholder="Select Category">
+          <el-option label="生活服务" value="生活服务" />
+          <el-option label="安全" value="安全" />
+          <!-- Add other categories as needed -->
+        </el-select>
+      </el-form-item>
+      <el-form-item label="Icon File" prop="iconFile">
+        <el-upload
+          :file-list="iconFileList"
+          :before-upload="handleIconUpload"
+          :on-remove="handleIconRemove"
+          list-type="picture"
+          class="upload-demo"
+        >
+          <el-button size="small" type="primary">Click to Upload</el-button>
+          <div slot="tip" class="el-upload__tip">Only one file can be uploaded</div>
+        </el-upload>
+      </el-form-item>
+      <el-form-item label="HAR File" prop="harFile">
+        <el-upload
+          :file-list="harFileList"
+          :before-upload="handleHarUpload"
+          :on-remove="handleHarRemove"
+          class="upload-demo"
+        >
+          <el-button size="small" type="primary">Click to Upload</el-button>
+          <div slot="tip" class="el-upload__tip">Only one file can be uploaded</div>
+        </el-upload>
+      </el-form-item>
+      <el-form-item>
+        <el-button type="primary" @click="submitForm">Submit</el-button>
+      </el-form-item>
+    </el-form>
+  </el-dialog>
 </template>
 
 <script lang="ts">
-import { defineComponent, ref } from 'vue';
+import { defineComponent, ref, PropType } from 'vue';
 import axios from 'axios';
 import { ElForm, ElMessage } from 'element-plus';
-import router from '@/router';
 
 export default defineComponent({
   name: 'UploadSdk',
-  setup() {
+  props: {
+    dialogVisible: {
+      type: Boolean as PropType<boolean>,
+      required: true,
+    },
+  },
+  setup(props, { emit }) {
     const form = ref({
       sdkName: '',
       category: '',
@@ -118,6 +119,7 @@ export default defineComponent({
                   type: 'success',
                   showClose: true,
                 });
+                emit('update:dialogVisible', false); // Close dialog on success
               } else {
                 ElMessage({
                   message: 'Upload failed: ' + response.data.message,
@@ -160,54 +162,12 @@ export default defineComponent({
 </script>
 
 <style scoped>
-.el-header {
-  background-color: #24292e;
-  color: #ffffff;
-  text-align: center;
-  font-size: 24px;
-  padding: 10px;
-}
-
-.el-main {
-  display: flex;
-  justify-content: left;
-  align-items: center;
-  background-color: #f6f8fa;
-  padding: 10px;
-  height: 100%;
-}
-
 .upload-form {
-  background: #ffffff;
-  border: 1px solid #e1e4e8;
-  border-radius: 6px;
-  padding: 60px;
-  box-shadow: 0 1px 3px rgba(27, 31, 35, 0.12), 0 8px 24px rgba(27, 31, 35, 0.12);
-  width: 100%;
-  max-width: 800px;
+  padding: 20px;
 }
 
-.el-form-item {
-  margin-bottom: 20px;
-}
-
-.el-form-item label {
-  color: #586069;
-}
-
-.el-button {
-  background-color: #2ea44f;
-  border-color: #2ea44f;
-  color: #ffffff;
-}
-
-.el-button:hover {
-  background-color: #269f42;
-  border-color: #269f42;
-}
-
-.el-upload__tip {
-  color: #586069;
+.upload-demo .el-upload__tip {
   font-size: 12px;
+  color: #999;
 }
 </style>

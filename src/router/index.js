@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import Home from '../views/Home.vue';
-import UploadSdk from '../views/UploadSdk.vue';
+import UploadSdk from '../components/UploadSdk.vue';
 import DetectTasks from '../views/DetectTasks.vue';
 import SdkList from '../views/SdkList.vue';
 import PermissionSettings from '../views/PermissionSettings.vue';

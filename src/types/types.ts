@@ -19,14 +19,24 @@ export interface SdkLatestResp {
 }
 
 export interface SdkListResp {
-  sdkId: string;
   sdkName: string;
   pkgName: string;
   versionName: string;
-  versionCode: number;
   categoryValue: string;
   iconLocation: string;
   size: string;
+  updatetime: number;
+  auditStatus: number;
+  detectStatus: number;
   sha256Code: string;
-  updatetime: string;
+}
+
+export interface SdkDetectTaskHistoryResp {
+  id: string;
+  sdkName: string;
+  pkgName: string;
+  versionName: string;
+  taskStatus: number;
+  startTime: string;
+  endTime: string;
 }
