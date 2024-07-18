@@ -7,14 +7,12 @@ import java.sql.Timestamp;
 
 @Setter
 @Getter
-public class SdkListResp {
+public class SdkDetectTaskHistoryResp {
+    private String id;
     private String sdkName;
     private String pkgName;
     private String versionName;
-    private String categoryValue;
-    private String iconLocation;
-    private String size;
-    private Timestamp updatetime;
-    private Integer auditStatus;
-    private Integer detectStatus;
+    private int taskStatus;
+    private Timestamp startTime;
+    private Timestamp endTime;
 }

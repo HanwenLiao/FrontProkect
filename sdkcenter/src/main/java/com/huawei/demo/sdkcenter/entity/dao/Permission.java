@@ -5,24 +5,18 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.huawei.demo.sdkcenter.constant.enums.PermissionType;
-import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
-import org.apache.ibatis.type.JdbcType;
 import org.apache.ibatis.type.MappedTypes;
-
-import java.sql.Timestamp;
 
 @Getter
 @Setter
 @TableName("dict_permission")
 @MappedTypes(PermissionType.class)
 public class Permission {
-    @TableId(value = "permission_id", type = IdType.ASSIGN_ID)
-    private Long permissionId;
+    @TableId(value = "id", type = IdType.ASSIGN_ID)
+    private Long id;
 
     @TableField(value = "permission_name")
     private String permissionName;

@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -17,8 +16,8 @@ public class SdkDetectTaskPermission {
     /**
      * 主键id
      */
-    @TableId(value = "detect_task_permission_id", type = IdType.ASSIGN_ID)
-    private Long detectTaskPermissionId;
+    @TableId(value = "id", type = IdType.ASSIGN_ID)
+    private Long id;
     /**
      *  权限名
      */

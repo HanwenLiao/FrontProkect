@@ -7,7 +7,6 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -18,8 +17,8 @@ import java.sql.Timestamp;
 @TableName("detect_report")
 public class DetectReport {
 
-    @TableId(value = "detect_report_id", type = IdType.ASSIGN_ID)
-    private Long detectReportId;
+    @TableId(value = "id", type = IdType.ASSIGN_ID)
+    private Long id;
 
     @TableField(value = "detect_task_id")
     private long detectTaskId;

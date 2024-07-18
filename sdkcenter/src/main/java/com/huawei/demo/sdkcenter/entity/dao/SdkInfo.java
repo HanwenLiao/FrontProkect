@@ -4,19 +4,18 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.util.Date;
 
-@Setter
 @Getter
+@Setter
 @TableName("sdk_info")
 public class SdkInfo {
 
-    @TableId(value = "sdk_id", type = IdType.ASSIGN_ID)
-    private Long sdkId;
+    @TableId(value = "id", type = IdType.ASSIGN_ID)
+    private Long id;
 
     @TableField(value = "sdk_name")
     private String sdkName;
@@ -47,6 +46,12 @@ public class SdkInfo {
 
     @TableField(value = "updatetime")
     private Date updatetime;
+
+    @TableField(value = "audit_status")
+    private Integer auditStatus;
+
+    @TableField(value = "createtime")
+    private Date createtime;
 
     public void setCategory(int category) {
         this.categoryValue = category;

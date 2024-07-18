@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.huawei.demo.sdkcenter.entity.dao.DetectReport;
 import com.huawei.demo.sdkcenter.entity.dao.Permission;
 import com.huawei.demo.sdkcenter.entity.dao.SdkInfo;
-import com.huawei.demo.sdkcenter.entity.resp.SdkLatestResp;
+import com.huawei.demo.sdkcenter.entity.resp.SdkLatestReportResp;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
@@ -19,7 +19,7 @@ public interface DetectReportMapper extends BaseMapper<DetectReport> {
             "WHERE dr.detect_task_id = #{detectTaskId} " +
             "ORDER BY dr.report_export_time DESC " +
             "LIMIT 1")
-    SdkLatestResp getLatestSdkReportByDetectTaskId(@Param("detectTaskId") Long detectTaskId);
+    SdkLatestReportResp getLatestSdkReportByDetectTaskId(@Param("detectTaskId") Long detectTaskId);
 
     @Select("SELECT * FROM sdk_info WHERE pkg_name = #{pkgName} LIMIT 1")
     SdkInfo getSdkInfoByPkgName(@Param("pkgName") String pkgName);

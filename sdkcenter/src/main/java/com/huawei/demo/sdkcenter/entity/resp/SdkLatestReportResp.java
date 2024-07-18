@@ -9,7 +9,7 @@ import java.sql.Timestamp;
 
 @Getter
 @Setter
-public class SdkLatestResp {
+public class SdkLatestReportResp {
 
     /**
      * 主键id

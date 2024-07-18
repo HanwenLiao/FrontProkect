@@ -1,17 +1,16 @@
+
+//
+
 package com.huawei.demo.sdkcenter.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.huawei.demo.sdkcenter.constant.enums.Category;
-import com.huawei.demo.sdkcenter.entity.dao.SdkDetectTask;
-import com.huawei.demo.sdkcenter.entity.dao.SdkDetectTaskPermission;
-import com.huawei.demo.sdkcenter.entity.dao.SdkInfo;
+import com.huawei.demo.sdkcenter.constant.enums.TaskStatus;
+import com.huawei.demo.sdkcenter.entity.dao.*;
 import com.huawei.demo.sdkcenter.entity.req.SdkUploadReq;
-import com.huawei.demo.sdkcenter.entity.dao.mapper.SdkDetectTaskMapper;
-import com.huawei.demo.sdkcenter.entity.dao.mapper.SdkDetectTaskPermissionMapper;
-import com.huawei.demo.sdkcenter.entity.dao.mapper.SdkInfoMapper;
-import com.huawei.demo.sdkcenter.util.FileUtil;
-import com.huawei.demo.sdkcenter.util.HarUtil;
-import com.huawei.demo.sdkcenter.util.ModuleUtil;
-import com.huawei.demo.sdkcenter.util.ResultBean;
+import com.huawei.demo.sdkcenter.entity.dao.mapper.*;
+import com.huawei.demo.sdkcenter.util.*;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,6 +38,9 @@ public class UploadService {
     @Autowired
     private SdkDetectTaskPermissionMapper sdkDetectTaskPermissionMapper;
 
+    @Autowired
+    private DetectReportMapper detectReportMapper;
+
     private static final String ICON_LOCATION = "/Users/liaohanwen/Documents/workspace/sdkcenter/src/main/resources/static/upload/icon";
     private static final String HAR_LOCATION = "/Users/liaohanwen/Documents/workspace/sdkcenter/src/main/resources/static/upload/har";
     private static final String TEMP_LOCATION = "/Users/liaohanwen/Documents/workspace/sdkcenter/src/upload/temp";
@@ -50,11 +52,14 @@ public class UploadService {
         try {
             SdkInfo sdkInfo = createSdkInfo(sdkUploadReq);
             SdkDetectTask sdkDetectTask = createSdkDetectTask(sdkUploadReq);
-            sdkInfo.setUpdatetime(new Date());
             sdkInfoMapper.insertOrUpdate(sdkInfo);
             sdkDetectTaskMapper.insert(sdkDetectTask);
             addSdkDetectTaskPermissions(sdkDetectTask);
             HarUtil.deleteDirectory(TEMP_LOCATION);
+
+            // 生成报告并入库
+            generateAndSaveReport(sdkDetectTask);
+
             return new ResultBean<>(200, "Upload successful");
         } catch (IOException e) {
             log.error("Failed to handle SDK upload: {}", e.getMessage(), e);
@@ -65,8 +70,25 @@ public class UploadService {
         }
     }
 
+    private void generateAndSaveReport(SdkDetectTask sdkDetectTask) {
+        SdkInfo sdkInfo = sdkInfoMapper.queryBySHA256(sdkDetectTask.getSha256Code());
+        DetectReport detectReport = createDetectReport(sdkDetectTask.getId(), sdkDetectTask, sdkInfo);
+        detectReportMapper.insert(detectReport);
+
+        // 更新任务状态
+        if (detectReport.getPermissionDetected().toString().contains("isSensitive\":1")) {
+            sdkDetectTask.setTaskStatus(TaskStatus.RISKY.getValue());
+        } else {
+            sdkDetectTask.setTaskStatus(TaskStatus.APPROVED.getValue());
+        }
+        sdkDetectTaskMapper.updateById(sdkDetectTask);
+    }
+
     private SdkInfo createSdkInfo(SdkUploadReq sdkUploadReq) throws IOException {
         SdkInfo sdkInfo = new SdkInfo();
+        sdkInfo.setCreatetime(new Date()); // 设置创建时间
+        sdkInfo.setAuditStatus(0); // 设置默认审核状态为待审核
+
         if (isValidIcon(sdkUploadReq.getIcon())) {
             String iconPath = saveMultipartFile(sdkUploadReq.getIcon(), ICON_LOCATION);
             sdkInfo.setIconLocation(iconPath);
@@ -83,6 +105,7 @@ public class UploadService {
     private SdkDetectTask createSdkDetectTask(SdkUploadReq sdkUploadReq) throws IOException {
         SdkDetectTask sdkDetectTask = new SdkDetectTask();
         sdkDetectTask.setStartTime(currentTimestamp());
+        sdkDetectTask.setTaskStatus(TaskStatus.IN_PROGRESS.getValue());
         populateSdkDetectTask(sdkDetectTask, sdkUploadReq);
         sdkDetectTask.setEndTime(currentTimestamp());
         return sdkDetectTask;
@@ -115,6 +138,7 @@ public class UploadService {
         sdkInfo.setVersionCode(ModuleUtil.findVersionCode(jsonObject));
         sdkInfo.setSize(FileUtil.getFileSizeKb(new File(HAR_LOCATION, sdkUploadReq.getHar().getOriginalFilename())));
         sdkInfo.setSha256Code(FileUtil.getFileSHA256(new File(HAR_LOCATION, sdkUploadReq.getHar().getOriginalFilename())));
+        sdkInfo.setUpdatetime(new Date()); // 更新 update time
     }
 
     private void populateSdkDetectTask(SdkDetectTask sdkDetectTask, SdkUploadReq sdkUploadReq) throws IOException {
@@ -134,11 +158,33 @@ public class UploadService {
         List<String> permissions = ModuleUtil.findRequestPermissions(jsonObject);
         for (String permission : permissions) {
             SdkDetectTaskPermission sdkDetectTaskPermission = new SdkDetectTaskPermission();
-            sdkDetectTaskPermission.setDetectTaskId(sdkDetectTask.getDetectTaskId());
+            sdkDetectTaskPermission.setDetectTaskId(sdkDetectTask.getId());
             sdkDetectTaskPermission.setPermissionName(permission);
             sdkDetectTaskPermission.setUpdateTime(new Timestamp(System.currentTimeMillis()));
             sdkDetectTaskPermissionMapper.insert(sdkDetectTaskPermission);
         }
+    }
+
+    private DetectReport createDetectReport(Long detectTaskId, SdkDetectTask sdkDetectTask, SdkInfo sdkInfo) {
+        DetectReport detectReport = new DetectReport();
+        detectReport.setDetectTaskId(detectTaskId);
+        detectReport.setSdkName(sdkDetectTask.getSdkName());
+        detectReport.setPkgName(sdkDetectTask.getPkgName());
+        detectReport.setSha256Code(sdkDetectTask.getSha256Code());
+        detectReport.setReportExportTime(new Timestamp(System.currentTimeMillis()));
+        detectReport.setTaskStartTime(sdkDetectTask.getStartTime());
+        detectReport.setVersionName(sdkInfo.getVersionName());
+
+        List<Permission> permissions = fetchPermissions(detectTaskId);
+        ObjectMapper objectMapper = new ObjectMapper();
+        JsonNode permissionJsonNode = objectMapper.valueToTree(permissions);
+        detectReport.setPermissionDetected(permissionJsonNode);
+
+        return detectReport;
+    }
+
+    private List<Permission> fetchPermissions(Long detectTaskId) {
+        return detectReportMapper.getPermissionsByDetectTaskId(detectTaskId);
     }
 
     private Timestamp currentTimestamp() {
