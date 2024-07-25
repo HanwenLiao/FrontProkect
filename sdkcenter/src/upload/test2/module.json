@@ -1,0 +1,41 @@
+{
+  "app": {
+    "bundleName": "cn.allpublic.test.hmos",
+    "versionCode": 1000000,
+    "versionName": "1.2.1",
+    "minAPIVersion": 50000012,
+    "targetAPIVersion": 50000012,
+    "apiReleaseType": "CanaryA",
+    "compileSdkVersion": "5.0.0.25",
+    "compileSdkType": "HarmonyOS",
+    "appEnvironments": 0,
+    "bundleType": "app"
+  },
+  "module": {
+    "name": "jg_harmony_har",
+    "type": "har",
+    "deviceTypes": [
+      "default",
+      "tablet",
+      "2in1"
+    ],
+    "requestPermissions": [
+      {
+        "name": "ohos.permission.INTERNET"
+      },
+      {
+        "name": "ohos.permission.GET_WIFIINFO"
+      },
+      {
+        "name": "ohos.permission.GET_NETWORK_INFO"
+      },
+      {
+        "name": "ohos.permission.READ_CALENDAR"
+      }
+    ],
+    "installationFree": false,
+    "virtualMachine": "ark12.0.2.0",
+    "compileMode": "esmodule",
+    "dependencies": []
+  }
+}

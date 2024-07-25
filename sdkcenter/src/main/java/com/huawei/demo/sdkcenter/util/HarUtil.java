@@ -122,4 +122,9 @@ public class HarUtil {
             log.error("Failed to delete file or directory: {}", directory.getAbsolutePath());
         }
     }
+
+//    public static void main(String[] args) {
+//        createHarFile("/Users/liaohanwen/Documents/workspace/sdkcenter/src/upload/test2",
+//                "/Users/liaohanwen/Documents/workspace/sdkcenter/src/upload/test3.har");
+//    }
 }

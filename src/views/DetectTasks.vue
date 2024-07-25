@@ -34,7 +34,7 @@
 import { defineComponent, ref, onMounted } from 'vue';
 import axios from 'axios';
 import DetectReport from '@/components/DetectReport.vue';
-import { SdkLatestResp } from '@/types/types';
+import { SdkLatestReportResp } from '@/types/types';
 
 export default defineComponent({
   name: 'TaskList',
@@ -46,7 +46,7 @@ export default defineComponent({
     const totalTasks = ref(0);
     const pageSize = 20;
     const currentPage = ref(1);
-    const selectedReport = ref<SdkLatestResp | null>(null);
+    const selectedReport = ref<SdkLatestReportResp | null>(null);
     const selectedTaskId = ref<string | null>(null);
 
     const fetchSdkTasks = async (page = 1) => {

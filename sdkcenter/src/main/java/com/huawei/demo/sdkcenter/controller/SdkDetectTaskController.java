@@ -46,4 +46,14 @@ public class SdkDetectTaskController {
         List<SdkDetectTaskHistoryResp> historyList = sdkDetectTaskService.getDetectTaskHistoryBySha256(sha256Code);
         return new ResultBean<>(200, "Fetch successful", historyList);
     }
+
+    @PostMapping("/retry-detection/{sha256Code}")
+    public ResultBean<Void> retryDetection(@PathVariable String sha256Code) {
+        try {
+            sdkDetectTaskService.retryDetection(sha256Code);
+            return new ResultBean<>(200, "重新检测成功");
+        } catch (Exception e) {
+            return new ResultBean<>(500, "重新检测失败: " + e.getMessage());
+        }
+    }
 }

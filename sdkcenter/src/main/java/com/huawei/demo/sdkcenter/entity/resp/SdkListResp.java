@@ -11,9 +11,10 @@ public class SdkListResp {
     private String sdkName;
     private String pkgName;
     private String versionName;
-    private String categoryValue;
+    private Integer categoryValue;
     private String iconLocation;
     private String size;
+    private String sha256Code;
     private Timestamp updatetime;
     private Integer auditStatus;
     private Integer detectStatus;

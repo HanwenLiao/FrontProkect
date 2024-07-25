@@ -1,6 +1,3 @@
-
-//
-
 package com.huawei.demo.sdkcenter.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -23,6 +20,7 @@ import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 @Service
@@ -48,7 +46,7 @@ public class UploadService {
     private static final String ICON_FILE_REGEX = ".*\\.(png|jpg|jpeg|gif|bmp)$";
     private static final String HAR_FILE_EXTENSION = ".har";
 
-    public ResultBean<String> handleUploadSdk(SdkUploadReq sdkUploadReq) {
+    public void handleUploadSdk(SdkUploadReq sdkUploadReq) {
         try {
             SdkInfo sdkInfo = createSdkInfo(sdkUploadReq);
             SdkDetectTask sdkDetectTask = createSdkDetectTask(sdkUploadReq);
@@ -60,17 +58,17 @@ public class UploadService {
             // 生成报告并入库
             generateAndSaveReport(sdkDetectTask);
 
-            return new ResultBean<>(200, "Upload successful");
+            new ResultBean<>(200, "Upload successful");
         } catch (IOException e) {
             log.error("Failed to handle SDK upload: {}", e.getMessage(), e);
-            return new ResultBean<>(500, "Upload failed: " + e.getMessage());
+            new ResultBean<>(500, "Upload failed: " + e.getMessage());
         } catch (Exception e) {
             log.error("Unexpected error occurred during SDK upload: {}", e.getMessage(), e);
-            return new ResultBean<>(500, "Unexpected error: " + e.getMessage());
+            new ResultBean<>(500, "Unexpected error: " + e.getMessage());
         }
     }
 
-    private void generateAndSaveReport(SdkDetectTask sdkDetectTask) {
+    void generateAndSaveReport(SdkDetectTask sdkDetectTask) {
         SdkInfo sdkInfo = sdkInfoMapper.queryBySHA256(sdkDetectTask.getSha256Code());
         DetectReport detectReport = createDetectReport(sdkDetectTask.getId(), sdkDetectTask, sdkInfo);
         detectReportMapper.insert(detectReport);
@@ -97,7 +95,7 @@ public class UploadService {
             String harPath = saveMultipartFile(sdkUploadReq.getHar(), HAR_LOCATION);
             sdkInfo.setFileLocation(harPath);
         }
-        HarUtil.harFileExtraction(new File(HAR_LOCATION, sdkUploadReq.getHar().getOriginalFilename()).getAbsolutePath(), TEMP_LOCATION);
+        HarUtil.harFileExtraction(new File(HAR_LOCATION, Objects.requireNonNull(sdkUploadReq.getHar().getOriginalFilename())).getAbsolutePath(), TEMP_LOCATION);
         populateSdkInfo(sdkInfo, sdkUploadReq);
         return sdkInfo;
     }
@@ -114,7 +112,7 @@ public class UploadService {
     private boolean isValidIcon(MultipartFile iconFile) {
         return Optional.ofNullable(iconFile)
                 .filter(file -> !file.isEmpty())
-                .filter(file -> file.getOriginalFilename().toLowerCase().matches(ICON_FILE_REGEX))
+                .filter(file -> Objects.requireNonNull(file.getOriginalFilename()).toLowerCase().matches(ICON_FILE_REGEX))
                 .filter(file -> file.getSize() <= ICON_FILE_SIZE)
                 .isPresent();
     }
@@ -122,7 +120,7 @@ public class UploadService {
     private boolean isValidHar(MultipartFile harFile) {
         return Optional.ofNullable(harFile)
                 .filter(file -> !file.isEmpty())
-                .filter(file -> file.getOriginalFilename().endsWith(HAR_FILE_EXTENSION))
+                .filter(file -> Objects.requireNonNull(file.getOriginalFilename()).endsWith(HAR_FILE_EXTENSION))
                 .isPresent();
     }
 
@@ -136,14 +134,14 @@ public class UploadService {
         sdkInfo.setPkgName(ModuleUtil.findPackageName(jsonObject));
         sdkInfo.setVersionName(ModuleUtil.findVersionName(jsonObject));
         sdkInfo.setVersionCode(ModuleUtil.findVersionCode(jsonObject));
-        sdkInfo.setSize(FileUtil.getFileSizeKb(new File(HAR_LOCATION, sdkUploadReq.getHar().getOriginalFilename())));
+        sdkInfo.setSize(FileUtil.getFileSizeKb(new File(HAR_LOCATION, Objects.requireNonNull(sdkUploadReq.getHar().getOriginalFilename()))));
         sdkInfo.setSha256Code(FileUtil.getFileSHA256(new File(HAR_LOCATION, sdkUploadReq.getHar().getOriginalFilename())));
         sdkInfo.setUpdatetime(new Date()); // 更新 update time
     }
 
     private void populateSdkDetectTask(SdkDetectTask sdkDetectTask, SdkUploadReq sdkUploadReq) throws IOException {
         sdkDetectTask.setSdkName(sdkUploadReq.getSdkName());
-        sdkDetectTask.setSha256Code(FileUtil.getFileSHA256(new File(HAR_LOCATION, sdkUploadReq.getHar().getOriginalFilename())));
+        sdkDetectTask.setSha256Code(FileUtil.getFileSHA256(new File(HAR_LOCATION, Objects.requireNonNull(sdkUploadReq.getHar().getOriginalFilename()))));
         sdkDetectTask.setFileLocation(new File(HAR_LOCATION, sdkUploadReq.getHar().getOriginalFilename()).getAbsolutePath());
         File moduleFile = Optional.ofNullable(FileUtil.findModuleFile(new File(TEMP_LOCATION)))
                 .orElseThrow(() -> new IOException("Module file not found, cannot set package name."));
@@ -193,10 +191,7 @@ public class UploadService {
 
     private String saveMultipartFile(MultipartFile file, String location) throws IOException {
         File dir = new File(location);
-        if (!dir.exists()) {
-            dir.mkdirs();
-        }
-        File dest = new File(dir, file.getOriginalFilename());
+        File dest = new File(dir, Objects.requireNonNull(file.getOriginalFilename()));
         file.transferTo(dest);
         return dest.getAbsolutePath();
     }

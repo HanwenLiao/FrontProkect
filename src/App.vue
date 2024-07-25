@@ -9,13 +9,27 @@
     </el-header>
     <el-container>
       <el-menu :default-active="activeMenu" @select="handleMenuSelect" class="el-menu-vertical" background-color="#2c2c2e" text-color="#ffffff" active-text-color="#2c2c2e">
-        <el-menu-item index="home">HOME</el-menu-item>
-        <el-menu-item index="detectTask">检测任务</el-menu-item>
-        <el-menu-item index="sdkList">sdk列表</el-menu-item>
-        <el-menu-item index="permissionSettings">权限设置</el-menu-item>
+        <el-menu-item index="home">
+          <el-icon><House /></el-icon>
+          HOME
+        </el-menu-item>
+        <el-menu-item index="sdkList">
+          <el-icon><Document /></el-icon>
+          SDK管理
+        </el-menu-item>
+        <el-menu-item index="detectTask">
+          <el-icon><Search /></el-icon>
+          检测任务
+        </el-menu-item>
+        <el-menu-item index="permissionSettings">
+          <el-icon><Setting /></el-icon>
+          权限设置
+        </el-menu-item>
       </el-menu>
       <el-main class="main-container">
-        <router-view />
+        <transition name="fade" mode="out-in">
+          <router-view />
+        </transition>
       </el-main>
     </el-container>
   </el-container>
@@ -24,9 +38,16 @@
 <script lang="ts">
 import { defineComponent, ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { House, Document, Search, Setting } from '@element-plus/icons-vue';
 
 export default defineComponent({
   name: 'App',
+  components: {
+    House,
+    Document,
+    Search,
+    Setting
+  },
   setup() {
     const router = useRouter();
     const activeMenu = ref('home');
@@ -59,7 +80,7 @@ export default defineComponent({
   top: 0;
   left: 0;
   width: 100%;
-  background-color: #1c1c1e;
+  background-color: #000000;
   color: #ffffff;
   line-height: 60px;
   text-align: left;
@@ -89,10 +110,10 @@ h1 {
 
 .el-menu-vertical {
   position: fixed;
-  top: 60px;
-  left: 0;
+  top: 70px;
+  left: 10px;
   width: 220px;
-  height: calc(100vh - 60px);
+  height: 900px;
   background-color: #2c2c2e;
   padding: 0;
   border: none;
@@ -111,9 +132,10 @@ h1 {
   position: fixed;
   top: 60px;
   left: 0px;
-  width: 2200px;
+  width: 100%;
   margin-left: 0px;
   padding-top: 80px;
+  /* background-color: #1c1c1e; */
   background-color: #1c1c1e;
   color: #ffffff;
   height: calc(100vh - 60px);
@@ -141,7 +163,7 @@ h1 {
 }
 
 .el-menu-item:hover {
-  color: #2c2c2e !important;
+  color: #2c2e2e !important;
 }
 
 body {
@@ -161,6 +183,11 @@ html, body {
   height: 100%;
 }
 
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 0.5s;
+}
 
-
+.fade-enter, .fade-leave-to {
+  opacity: 0;
+}
 </style>

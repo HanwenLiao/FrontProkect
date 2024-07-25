@@ -6,7 +6,7 @@ export interface Permission {
   description: string;
 }
 
-export interface SdkLatestResp {
+export interface SdkLatestReportResp {
   detect_report_id: string;
   detect_task_id: string;
   sdk_name: string;
@@ -15,14 +15,14 @@ export interface SdkLatestResp {
   sha256_code: string;
   report_export_time: string;
   task_start_time: string;
-  permission_name_list: Permission[];
+  permission_name_list: Permission[] | null;
 }
 
 export interface SdkListResp {
   sdkName: string;
   pkgName: string;
   versionName: string;
-  categoryValue: string;
+  categoryValue: number;
   iconLocation: string;
   size: string;
   updatetime: number;

@@ -28,8 +28,9 @@ public class SdkListService {
             resp.setSdkName(sdk.getSdkName());
             resp.setPkgName(sdk.getPkgName());
             resp.setVersionName(sdk.getVersionName());
-            resp.setCategoryValue(sdk.getCategoryValue().toString());
+            resp.setCategoryValue(sdk.getCategoryValue());
             resp.setIconLocation(sdk.getIconLocation());
+            resp.setSha256Code(sdk.getSha256Code());
             resp.setSize(sdk.getSize());
             resp.setUpdatetime(new Timestamp(sdk.getUpdatetime().getTime()));
             resp.setAuditStatus(sdk.getAuditStatus());

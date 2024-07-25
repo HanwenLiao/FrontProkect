@@ -4,7 +4,7 @@ import lombok.Getter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
+@Getter
 public enum PermissionType {
     BLUETOOTH(1, "蓝牙"),
     NETWORK(2, "网络"),
