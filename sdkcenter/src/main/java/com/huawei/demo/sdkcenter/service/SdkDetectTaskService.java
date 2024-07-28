@@ -1,8 +1,5 @@
 package com.huawei.demo.sdkcenter.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.huawei.demo.sdkcenter.constant.enums.TaskStatus;
 import com.huawei.demo.sdkcenter.entity.dao.SdkDetectTask;
 import com.huawei.demo.sdkcenter.entity.dao.SdkInfo;
 import com.huawei.demo.sdkcenter.entity.dao.mapper.DetectReportMapper;
@@ -10,20 +7,23 @@ import com.huawei.demo.sdkcenter.entity.dao.mapper.SdkDetectTaskMapper;
 import com.huawei.demo.sdkcenter.entity.dao.mapper.SdkInfoMapper;
 import com.huawei.demo.sdkcenter.entity.dao.mapper.SdkDetectTaskPermissionMapper;
 import com.huawei.demo.sdkcenter.entity.resp.SdkDetectTaskHistoryResp;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.CrossOrigin;
 
+import java.io.IOException;
 import java.sql.Timestamp;
 import java.util.List;
-
+@CrossOrigin
 @Service
+@Slf4j(topic = "debug")
 public class SdkDetectTaskService {
 
     @Autowired
     private SdkDetectTaskMapper sdkDetectTaskMapper;
     @Autowired
     private SdkInfoMapper sdkInfoMapper;
-
 
     @Autowired
     private SdkDetectTaskPermissionMapper sdkDetectTaskPermissionMapper;
@@ -43,12 +43,9 @@ public class SdkDetectTaskService {
         return sdkDetectTaskMapper.selectCount();
     }
 
-
     public List<SdkDetectTaskHistoryResp> getDetectTaskHistoryBySha256(String sha256Code) {
         return sdkDetectTaskMapper.getDetectTaskHistoryBySha256(sha256Code);
     }
-
-
 
     public void retryDetection(String sha256Code) {
         // 根据sha256Code查找相关的SdkInfo和SdkDetectTask
@@ -57,21 +54,12 @@ public class SdkDetectTaskService {
             throw new RuntimeException("未找到相关的SDK信息");
         }
 
-        SdkDetectTask sdkDetectTask = new SdkDetectTask();
-        sdkDetectTask.setSdkName(sdkInfo.getSdkName());
-        sdkDetectTask.setPkgName(sdkInfo.getPkgName());
-        sdkDetectTask.setSha256Code(sha256Code);
-        sdkDetectTask.setFileLocation(sdkInfo.getFileLocation());
-        sdkDetectTask.setStartTime(new Timestamp(System.currentTimeMillis()));
-        sdkDetectTask.setEndTime(null); // 设置end_time为null
-        sdkDetectTask.setTaskStatus(TaskStatus.IN_PROGRESS.getValue());
-
-        sdkDetectTaskMapper.insert(sdkDetectTask);
-
-        // 重新检测逻辑
-        uploadService.generateAndSaveReport(sdkDetectTask);
-
-        sdkDetectTask.setEndTime(new Timestamp(System.currentTimeMillis()));
-        sdkDetectTaskMapper.updateById(sdkDetectTask);
+        try {
+            SdkDetectTask sdkDetectTask = uploadService.createSdkDetectTaskWithoutFiles(sdkInfo);
+            // 重新检测逻辑
+            uploadService.generateAndSaveReport(sdkDetectTask);
+        } catch (IOException e) {
+            throw new RuntimeException("重新检测失败: " + e.getMessage(), e);
+        }
     }
 }

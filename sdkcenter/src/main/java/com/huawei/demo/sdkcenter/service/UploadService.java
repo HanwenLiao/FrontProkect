@@ -11,6 +11,7 @@ import com.huawei.demo.sdkcenter.util.*;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -39,12 +40,18 @@ public class UploadService {
     @Autowired
     private DetectReportMapper detectReportMapper;
 
-    private static final String ICON_LOCATION = "/Users/liaohanwen/Documents/workspace/sdkcenter/src/main/resources/static/upload/icon";
-    private static final String HAR_LOCATION = "/Users/liaohanwen/Documents/workspace/sdkcenter/src/main/resources/static/upload/har";
-    private static final String TEMP_LOCATION = "/Users/liaohanwen/Documents/workspace/sdkcenter/src/upload/temp";
-    private static final long ICON_FILE_SIZE = 4 * 1024 * 1024;
+    @Value("${upload.icon.location}")
+    private String ICON_LOCATION;
+
+    @Value("${upload.har.location}")
+    private String HAR_LOCATION;
+
+    @Value("${upload.temp.location}")
+    private String TEMP_LOCATION;
+
     private static final String ICON_FILE_REGEX = ".*\\.(png|jpg|jpeg|gif|bmp)$";
     private static final String HAR_FILE_EXTENSION = ".har";
+    private static final long ICON_FILE_SIZE = 4 * 1024 * 1024;
 
     public void handleUploadSdk(SdkUploadReq sdkUploadReq) {
         try {
@@ -68,21 +75,8 @@ public class UploadService {
         }
     }
 
-    void generateAndSaveReport(SdkDetectTask sdkDetectTask) {
-        SdkInfo sdkInfo = sdkInfoMapper.queryBySHA256(sdkDetectTask.getSha256Code());
-        DetectReport detectReport = createDetectReport(sdkDetectTask.getId(), sdkDetectTask, sdkInfo);
-        detectReportMapper.insert(detectReport);
 
-        // 更新任务状态
-        if (detectReport.getPermissionDetected().toString().contains("isSensitive\":1")) {
-            sdkDetectTask.setTaskStatus(TaskStatus.RISKY.getValue());
-        } else {
-            sdkDetectTask.setTaskStatus(TaskStatus.APPROVED.getValue());
-        }
-        sdkDetectTaskMapper.updateById(sdkDetectTask);
-    }
-
-    private SdkInfo createSdkInfo(SdkUploadReq sdkUploadReq) throws IOException {
+        private SdkInfo createSdkInfo(SdkUploadReq sdkUploadReq) throws IOException {
         SdkInfo sdkInfo = new SdkInfo();
         sdkInfo.setCreatetime(new Date()); // 设置创建时间
         sdkInfo.setAuditStatus(0); // 设置默认审核状态为待审核
@@ -100,12 +94,38 @@ public class UploadService {
         return sdkInfo;
     }
 
-    private SdkDetectTask createSdkDetectTask(SdkUploadReq sdkUploadReq) throws IOException {
+    public void generateAndSaveReport(SdkDetectTask sdkDetectTask) {
+        SdkInfo sdkInfo = sdkInfoMapper.queryBySHA256(sdkDetectTask.getSha256Code());
+        DetectReport detectReport = createDetectReport(sdkDetectTask.getId(), sdkDetectTask, sdkInfo);
+        detectReportMapper.insert(detectReport);
+
+        // 更新任务状态
+        if (detectReport.getPermissionDetected().toString().contains("isSensitive\":1")) {
+            sdkDetectTask.setTaskStatus(TaskStatus.RISKY.getValue());
+        } else {
+            sdkDetectTask.setTaskStatus(TaskStatus.APPROVED.getValue());
+        }
+        sdkDetectTask.setEndTime(new Timestamp(System.currentTimeMillis()));
+        sdkDetectTaskMapper.updateById(sdkDetectTask);
+    }
+
+    public SdkDetectTask createSdkDetectTask(SdkUploadReq sdkUploadReq) throws IOException {
         SdkDetectTask sdkDetectTask = new SdkDetectTask();
         sdkDetectTask.setStartTime(currentTimestamp());
         sdkDetectTask.setTaskStatus(TaskStatus.IN_PROGRESS.getValue());
         populateSdkDetectTask(sdkDetectTask, sdkUploadReq);
-        sdkDetectTask.setEndTime(currentTimestamp());
+        sdkDetectTask.setEndTime(null); // 设置end_time为null
+        return sdkDetectTask;
+    }
+
+    public SdkDetectTask createSdkDetectTaskWithoutFiles(SdkInfo sdkInfo) throws IOException {
+        SdkDetectTask sdkDetectTask = new SdkDetectTask();
+        sdkDetectTask.setStartTime(currentTimestamp());
+        sdkDetectTask.setTaskStatus(TaskStatus.IN_PROGRESS.getValue());
+        populateSdkDetectTaskWithoutFiles(sdkDetectTask, sdkInfo);
+        sdkDetectTask.setEndTime(null); // 设置end_time为null
+        sdkDetectTaskMapper.insert(sdkDetectTask); // Ensure sdkDetectTask is inserted and has an ID
+        addSdkDetectTaskPermissions(sdkDetectTask); // Now call the method to add permissions
         return sdkDetectTask;
     }
 
@@ -149,7 +169,17 @@ public class UploadService {
         sdkDetectTask.setPkgName(ModuleUtil.findPackageName(jsonObject));
     }
 
+    private void populateSdkDetectTaskWithoutFiles(SdkDetectTask sdkDetectTask, SdkInfo sdkInfo) {
+        sdkDetectTask.setSdkName(sdkInfo.getSdkName());
+        sdkDetectTask.setSha256Code(sdkInfo.getSha256Code());
+        sdkDetectTask.setFileLocation(sdkInfo.getFileLocation());
+        sdkDetectTask.setPkgName(sdkInfo.getPkgName());
+    }
+
+
     private void addSdkDetectTaskPermissions(SdkDetectTask sdkDetectTask) throws IOException {
+        String harFilePath = sdkDetectTask.getFileLocation();
+        HarUtil.harFileExtraction(harFilePath, TEMP_LOCATION);
         File moduleFile = Optional.ofNullable(FileUtil.findModuleFile(new File(TEMP_LOCATION)))
                 .orElseThrow(() -> new IOException("Module file not found, cannot add permissions."));
         JSONObject jsonObject = ModuleUtil.jsonObjectConverter(moduleFile);
@@ -172,12 +202,10 @@ public class UploadService {
         detectReport.setReportExportTime(new Timestamp(System.currentTimeMillis()));
         detectReport.setTaskStartTime(sdkDetectTask.getStartTime());
         detectReport.setVersionName(sdkInfo.getVersionName());
-
-        List<Permission> permissions = fetchPermissions(detectTaskId);
+        List permissions = fetchPermissions(detectTaskId);
         ObjectMapper objectMapper = new ObjectMapper();
         JsonNode permissionJsonNode = objectMapper.valueToTree(permissions);
         detectReport.setPermissionDetected(permissionJsonNode);
-
         return detectReport;
     }
 
@@ -189,9 +217,16 @@ public class UploadService {
         return new Timestamp(System.currentTimeMillis());
     }
 
+//    private String saveMultipartFile(MultipartFile file, String location) throws IOException {
+//        File dir = new File(location);
+//        File dest = new File(dir, Objects.requireNonNull(file.getOriginalFilename()));
+//        file.transferTo(dest);
+//        return dest.getAbsolutePath();
+//    }
     private String saveMultipartFile(MultipartFile file, String location) throws IOException {
         File dir = new File(location);
-        File dest = new File(dir, Objects.requireNonNull(file.getOriginalFilename()));
+        String uuidFileName = UUIDUtil.getUUID() + "_" + Objects.requireNonNull(file.getOriginalFilename());
+        File dest = new File(dir, uuidFileName);
         file.transferTo(dest);
         return dest.getAbsolutePath();
     }

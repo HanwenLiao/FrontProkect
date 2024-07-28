@@ -64,7 +64,7 @@ export default defineComponent({
   name: 'UploadSdkPage',
   components: {
     ElIcon,
-    ArrowLeft
+    ArrowLeft,
   },
   setup() {
     const router = useRouter();
@@ -126,12 +126,13 @@ export default defineComponent({
                 },
               });
 
-              if (response.data.status === 200) {
+              if (response.data.code === 200) {
                 ElMessage({
                   message: '上传成功',
                   type: 'success',
                   showClose: true,
                 });
+                router.push('/sdk-list');
               } else {
                 ElMessage({
                   message: '上传失败: ' + response.data.message,
@@ -177,6 +178,7 @@ export default defineComponent({
   },
 });
 </script>
+
 
 <style scoped>
 .upload-sdk-page {

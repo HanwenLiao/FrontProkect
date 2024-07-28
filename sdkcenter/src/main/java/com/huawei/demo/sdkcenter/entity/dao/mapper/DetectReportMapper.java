@@ -28,5 +28,6 @@ public interface DetectReportMapper extends BaseMapper<DetectReport> {
             "LEFT JOIN dict_permission p ON dp.permission_name = p.permission_name " +
             "WHERE dp.detect_task_id = #{detectTaskId}")
     List<Permission> getPermissionsByDetectTaskId(@Param("detectTaskId") Long detectTaskId);
+
 }
 
