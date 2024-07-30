@@ -2,10 +2,7 @@ package com.huawei.demo.sdkcenter.entity.dao.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.huawei.demo.sdkcenter.entity.dao.SdkInfo;
-import org.apache.ibatis.annotations.Insert;
-import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.annotations.Param;
-import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.*;
 
 @Mapper
 public interface SdkInfoMapper extends BaseMapper<SdkInfo> {
@@ -27,4 +24,7 @@ public interface SdkInfoMapper extends BaseMapper<SdkInfo> {
             "FROM sdk_info si " +
             "WHERE si.sha256_code = #{sha256_code}")
     SdkInfo queryBySHA256(@Param("sha256_code") String sha256_code);
+
+    @Update("UPDATE sdk_info SET audit_status = #{auditStatus} WHERE sha256_code = #{sha256Code}")
+    int updateAuditStatus(@Param("sha256Code") String sha256Code, @Param("auditStatus") Integer auditStatus);
 }

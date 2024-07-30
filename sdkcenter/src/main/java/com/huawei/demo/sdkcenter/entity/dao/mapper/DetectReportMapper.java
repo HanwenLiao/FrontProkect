@@ -10,7 +10,6 @@ import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 
 import java.util.List;
-
 @Mapper
 public interface DetectReportMapper extends BaseMapper<DetectReport> {
 
@@ -19,7 +18,10 @@ public interface DetectReportMapper extends BaseMapper<DetectReport> {
             "WHERE dr.detect_task_id = #{detectTaskId} " +
             "ORDER BY dr.report_export_time DESC " +
             "LIMIT 1")
-    SdkLatestReportResp getLatestSdkReportByDetectTaskId(@Param("detectTaskId") Long detectTaskId);
+    DetectReport getLatestDetectReportByDetectTaskId(@Param("detectTaskId") Long detectTaskId);
+//    @Select("SELECT * FROM detect_report WHERE detect_task_id = #{detectTaskId} ORDER BY report_export_time DESC LIMIT 1")
+//    DetectReport getLatestDetectReportByDetectTaskId(@Param("detectTaskId") Long detectTaskId);
+
 
     @Select("SELECT * FROM sdk_info WHERE pkg_name = #{pkgName} LIMIT 1")
     SdkInfo getSdkInfoByPkgName(@Param("pkgName") String pkgName);
@@ -28,6 +30,4 @@ public interface DetectReportMapper extends BaseMapper<DetectReport> {
             "LEFT JOIN dict_permission p ON dp.permission_name = p.permission_name " +
             "WHERE dp.detect_task_id = #{detectTaskId}")
     List<Permission> getPermissionsByDetectTaskId(@Param("detectTaskId") Long detectTaskId);
-
 }
-
