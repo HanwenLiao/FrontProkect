@@ -47,11 +47,16 @@ public enum PermissionType {
         this.description = description;
     }
 
-    public static PermissionType fromValue(Integer value) {
-        if (value == null) {
-            return null; // 或者返回一个默认值，比如 TYPE_0
-        }
-        for (PermissionType type : PermissionType.values()) {
+    public int getValue() {
+        return value;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public static PermissionType fromValue(int value) {
+        for (PermissionType type : values()) {
             if (type.value == value) {
                 return type;
             }

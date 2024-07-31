@@ -9,6 +9,7 @@ import com.huawei.demo.sdkcenter.entity.dao.mapper.SdkDetectTaskPermissionMapper
 import com.huawei.demo.sdkcenter.entity.resp.SdkDetectTaskHistoryResp;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.CrossOrigin;
 
@@ -60,6 +61,21 @@ public class SdkDetectTaskService {
             uploadService.generateAndSaveReport(sdkDetectTask);
         } catch (IOException e) {
             throw new RuntimeException("重新检测失败: " + e.getMessage(), e);
+        }
+    }
+    @Scheduled(cron = "0 0 */12 * * ?")
+    public void scheduleRetryDetection() {
+        log.debug("Executing scheduled retry detection task");
+
+        // 获取所有需要重新检测的SDK信息
+        List<SdkInfo> sdkInfos = sdkInfoMapper.selectAll();
+        for (SdkInfo sdkInfo : sdkInfos) {
+            try {
+                retryDetection(sdkInfo.getSha256Code());
+                log.debug("Successfully retried detection for SDK with SHA256: {}", sdkInfo.getSha256Code());
+            } catch (Exception e) {
+                log.error("Failed to retry detection for SDK with SHA256: {}", sdkInfo.getSha256Code(), e);
+            }
         }
     }
 }

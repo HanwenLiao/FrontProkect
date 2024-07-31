@@ -1,5 +1,8 @@
 <template>
   <div class="permission-settings">
+    <el-button class="add-button" @click="showAddCard">
+      <el-icon><Plus /></el-icon> 
+    </el-button>
     <el-table :data="pagedData" class="custom-table">
       <el-table-column prop="id" label="ID" width="80"/>
       <el-table-column prop="permissionName" label="权限名称" width="500"/>
@@ -28,7 +31,6 @@
                 </el-button>
               </template>
             </el-popover>
-            
           </div>
         </template>
       </el-table-column>
@@ -52,8 +54,17 @@
                 </el-button>
               </template>
             </el-popover>
-            
           </div>
+        </template>
+      </el-table-column>
+      <el-table-column label="操作" width="200">
+        <template #default="scope">
+          <el-button type="text" @click="showEditCard(scope.row)">
+            <el-icon><Edit /></el-icon> 编辑
+          </el-button>
+          <el-button type="text" @click="showDeleteCard(scope.row)">
+            <el-icon><Delete /></el-icon> 删除
+          </el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -66,18 +77,98 @@
       @current-change="handlePageChange"
       class="pagination"
     />
+
+    <!-- 添加权限卡片 -->
+    <el-card class="box-card" v-if="addCardVisible">
+      <div slot="header" class="clearfix">
+        <span>添加权限</span>
+        <el-button @click="addCardVisible = false" type="text" class="close-button">×</el-button>
+      </div>
+      <el-form :model="addForm" label-width="100px">
+        <el-form-item label="权限名称">
+          <el-input v-model="addForm.permissionName"></el-input>
+        </el-form-item>
+        <el-form-item label="是否敏感">
+          <el-switch v-model="addForm.isSensitive" :active-value="1" :inactive-value="0"></el-switch>
+        </el-form-item>
+        <el-form-item label="描述">
+          <el-input type="textarea" v-model="addForm.description"></el-input>
+        </el-form-item>
+        <el-form-item label="权限类型">
+          <el-select v-model="addForm.permissionType" placeholder="请选择权限类型">
+            <el-option
+              v-for="type in permissionTypes"
+              :key="type.value"
+              :label="type.description"
+              :value="type.value">
+            </el-option>
+          </el-select>
+        </el-form-item>
+      </el-form>
+      <div class="dialog-footer">
+        <el-button @click="addCardVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitAdd">保存</el-button>
+      </div>
+    </el-card>
+
+    <!-- 编辑卡片 -->
+    <el-card class="box-card" v-if="editCardVisible">
+      <div slot="header" class="clearfix">
+        <span>编辑权限</span>
+        <el-button @click="editCardVisible = false" type="text" class="close-button">×</el-button>
+      </div>
+      <el-form :model="editForm" label-width="100px">
+        <el-form-item label="权限名称">
+          <el-input v-model="editForm.permissionName"></el-input>
+        </el-form-item>
+        <el-form-item label="是否敏感">
+          <el-switch v-model="editForm.isSensitive" :active-value="1" :inactive-value="0"></el-switch>
+        </el-form-item>
+        <el-form-item label="描述">
+          <el-input type="textarea" v-model="editForm.description"></el-input>
+        </el-form-item>
+        <el-form-item label="权限类型">
+          <el-select v-model="editForm.permissionType" placeholder="请选择权限类型">
+            <el-option
+              v-for="type in permissionTypes"
+              :key="type.value"
+              :label="type.description"
+              :value="type.value">
+            </el-option>
+          </el-select>
+        </el-form-item>
+      </el-form>
+      <div class="dialog-footer">
+        <el-button @click="editCardVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitEdit">保存</el-button>
+      </div>
+    </el-card>
+
+    <!-- 删除卡片 -->
+    <el-card class="box-card" v-if="deleteCardVisible">
+      <div slot="header" class="clearfix">
+        <span>确认删除</span>
+        <el-button @click="deleteCardVisible = false" type="text" class="close-button">×</el-button>
+      </div>
+      <span>确定要删除这个权限吗？</span>
+      <div class="dialog-footer">
+        <el-button @click="deleteCardVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitDelete">删除</el-button>
+      </div>
+    </el-card>
   </div>
 </template>
 
 <script lang="ts">
 import { defineComponent, ref, onMounted } from 'vue';
 import axios from 'axios';
-import { Edit, ArrowDown } from '@element-plus/icons-vue';
+import { Edit, Delete, Plus, ArrowDown } from '@element-plus/icons-vue';
+import { ElMessage } from 'element-plus';
 
 interface Permission {
   id: number;
   permissionName: string;
-  isSensitive: boolean;
+  isSensitive: number;
   description: string;
   permissionType: string;
 }
@@ -91,6 +182,8 @@ export default defineComponent({
   name: 'PermissionSettings',
   components: {
     Edit,
+    Delete,
+    Plus,
     ArrowDown,
   },
   setup() {
@@ -103,101 +196,241 @@ export default defineComponent({
     const sensitiveFilter = ref<string[]>([]);
     const typeFilter = ref<string[]>([]);
 
+    const editCardVisible = ref(false);
+    const addCardVisible = ref(false);
+    const deleteCardVisible = ref(false);
+    const editForm = ref<Permission>({
+      id: 0,
+      permissionName: '',
+      isSensitive: 0,
+      description: '',
+      permissionType: '',
+    });
+    const addForm = ref<Permission>({
+      id: 0,
+      permissionName: '',
+      isSensitive: 0,
+      description: '',
+      permissionType: '',
+    });
+    const currentPermission = ref<Permission | null>(null);
+
     const permissionTypes: PermissionType[] = [
-      { value: '蓝牙', description: '蓝牙' },
-      { value: '网络', description: '网络' },
-      { value: '音频', description: '音频' },
-      // Add more types as needed
+      { value: 'BLUETOOTH', description: '蓝牙' },
+      { value: 'NETWORK', description: '网络' },
+      { value: 'AUDIO', description: '音频' },
+      { value: 'NOTIFICATION', description: '通知' },
+      { value: 'TELEPHONE', description: '电话' },
+      { value: 'ABILITY', description: '能力' },
+      { value: 'STORAGE', description: '存储' },
+      { value: 'SYSTEM', description: '系统' },
+      { value: 'DOWNLOAD', description: '下载' },
+      { value: 'EVENT', description: '事件' },
+      { value: 'WINDOW', description: '窗口' },
+      { value: 'HARDWARE', description: '硬件' },
+      { value: 'INPUT', description: '输入' },
+      { value: 'DISPLAY', description: '显示' },
+      { value: 'BROADCAST', description: '广播' },
+      { value: 'PRIVACY', description: '隐私' },
+      { value: 'MEDIA', description: '媒体' },
+      { value: 'SECURITY', description: '安全' },
+      { value: 'HEALTH', description: '健康' },
+      { value: 'LOCATION', description: '位置' },
+      { value: 'CAMERA', description: '相机' },
+      { value: 'CALENDAR', description: '日历' },
+      { value: 'ACCOUNT', description: '账户' },
+      { value: 'ACCESSIBILITY', description: '无障碍' },
+      { value: 'MICROPHONE', description: '麦克风' },
+      { value: 'CONTACTS', description: '联系人' },
+      { value: 'SENSOR', description: '传感器' },
+      { value: 'NFC', description: 'NFC' },
+      { value: 'FITNESS', description: '健身运动' },
+      { value: 'DISTRIBUTED_DATA_MANAGEMENT', description: '分布式数据管理' }
     ];
 
     const fetchPermissions = async () => {
-      try {
-        const response = await axios.get<Permission[]>('http://localhost:8080/permissions');
-        if (response.data) {
-          permissions.value = response.data;
-          totalPermissions.value = response.data.length;
-          handlePageChange(1);
-        }
-      } catch (error) {
-        console.error('Failed to fetch permissions:', error);
-      }
-    };
+  try {
+    const response = await axios.get<Permission[]>('http://localhost:8080/permissions');
+    if (response.data) {
+      permissions.value = response.data;
+      totalPermissions.value = response.data.length;
+      handlePageChange(1);
+    }
+  } catch (error) {
+    console.error('Failed to fetch permissions:', error);
+  }
+};
 
-    const handlePageChange = (page: number) => {
-      currentPage.value = page;
+const handlePageChange = (page: number) => {
+  currentPage.value = page;
+  applyFilters();
+};
+
+const toggleSensitive = async (permission: Permission) => {
+  try {
+    const response = await axios.put<Permission>(`http://localhost:8080/permissions/${permission.id}/toggle-sensitive`);
+    if (response.data) {
+      const updatedPermission = response.data;
+      const index = permissions.value.findIndex((p) => p.id === updatedPermission.id);
+      if (index !== -1) {
+        permissions.value[index] = updatedPermission;
+        applyFilters();
+      }
+    }
+  } catch (error) {
+    console.error('Failed to toggle sensitive:', error);
+  }
+};
+
+const getPermissionTypeDescription = (type: string) => {
+  const foundType = permissionTypes.find(t => t.value === type);
+  return foundType ? foundType.description : type;
+};
+
+const applyFilters = () => {
+  let filtered = permissions.value;
+
+  if (sensitiveFilter.value.length > 0) {
+    filtered = filtered.filter(permission =>
+      sensitiveFilter.value.includes('sensitive') && permission.isSensitive ||
+      sensitiveFilter.value.includes('non-sensitive') && !permission.isSensitive
+    );
+  }
+
+  if (typeFilter.value.length > 0) {
+    filtered = filtered.filter(permission =>
+      typeFilter.value.includes(permission.permissionType)
+    );
+  }
+
+  totalPermissions.value = filtered.length;
+  const start = (currentPage.value - 1) * pageSize;
+  const end = start + pageSize;
+  pagedData.value = filtered.slice(start, end);
+};
+
+const showAddCard = () => {
+  addForm.value = {
+    id: 0,
+    permissionName: '',
+    isSensitive: 0,
+    description: '',
+    permissionType: '',
+  };
+  addCardVisible.value = true;
+};
+
+const submitAdd = async () => {
+  try {
+    const response = await axios.post<Permission>('http://localhost:8080/permissions/add', addForm.value);
+    if (response.data) {
+      permissions.value.push(response.data);
       applyFilters();
-    };
+      addCardVisible.value = false;
+      ElMessage.success('添加成功');
+    }
+  } catch (error) {
+    console.error('Failed to add permission:', error);
+    ElMessage.error('添加失败');
+  }
+};
 
-    const toggleSensitive = async (permission: Permission) => {
-      try {
-        const response = await axios.put<Permission>(`http://localhost:8080/permissions/${permission.id}/toggle-sensitive`);
-        if (response.data) {
-          const updatedPermission = response.data;
-          const index = permissions.value.findIndex((p) => p.id === updatedPermission.id);
-          if (index !== -1) {
-            permissions.value[index] = updatedPermission;
-            applyFilters();
-          }
-        }
-      } catch (error) {
-        console.error('Failed to toggle sensitive:', error);
+const showEditCard = (permission: Permission) => {
+  currentPermission.value = { ...permission };
+  editForm.value = { ...permission };
+  editCardVisible.value = true;
+};
+
+const submitEdit = async () => {
+  if (!currentPermission.value) return;
+  try {
+    const response = await axios.put<Permission>(`http://localhost:8080/permissions/${currentPermission.value.id}/update`, editForm.value);
+    if (response.data) {
+      const index = permissions.value.findIndex((p) => p.id === currentPermission.value!.id);
+      if (index !== -1) {
+        permissions.value[index] = response.data;
+        applyFilters();
+        editCardVisible.value = false;
+        ElMessage.success('编辑成功');
       }
-    };
+    }
+  } catch (error) {
+    console.error('Failed to update permission:', error);
+    ElMessage.error('编辑失败');
+  }
+};
 
-    const getPermissionTypeDescription = (type: string) => {
-      const foundType = permissionTypes.find(t => t.value === type);
-      return foundType ? foundType.description : type;
-    };
+const showDeleteCard = (permission: Permission) => {
+  currentPermission.value = { ...permission };
+  deleteCardVisible.value = true;
+};
 
-    const applyFilters = () => {
-      let filtered = permissions.value;
+const submitDelete = async () => {
+  if (!currentPermission.value) return;
+  try {
+    await axios.delete(`http://localhost:8080/permissions/${currentPermission.value.id}/delete`);
+    permissions.value = permissions.value.filter(p => p.id !== currentPermission.value!.id);
+    applyFilters();
+    deleteCardVisible.value = false;
+    ElMessage.success('删除成功');
+  } catch (error) {
+    console.error('Failed to delete permission:', error);
+    ElMessage.error('删除失败');
+  }
+};
 
-      if (sensitiveFilter.value.length > 0) {
-        filtered = filtered.filter(permission =>
-          sensitiveFilter.value.includes('sensitive') && permission.isSensitive ||
-          sensitiveFilter.value.includes('non-sensitive') && !permission.isSensitive
-        );
-      }
+onMounted(() => {
+  fetchPermissions();
+});
 
-      if (typeFilter.value.length > 0) {
-        filtered = filtered.filter(permission =>
-          typeFilter.value.includes(permission.permissionType)
-        );
-      }
-
-      totalPermissions.value = filtered.length;
-      const start = (currentPage.value - 1) * pageSize;
-      const end = start + pageSize;
-      pagedData.value = filtered.slice(start, end);
-    };
-
-    onMounted(() => {
-      fetchPermissions();
-    });
-
-    return {
-      pagedData,
-      totalPermissions,
-      pageSize,
-      currentPage,
-      handlePageChange,
-      toggleSensitive,
-      sensitiveFilter,
-      typeFilter,
-      permissionTypes,
-      applyFilters,
-      getPermissionTypeDescription,
-    };
-  },
+return {
+  pagedData,
+  totalPermissions,
+  pageSize,
+  currentPage,
+  handlePageChange,
+  toggleSensitive,
+  sensitiveFilter,
+  typeFilter,
+  permissionTypes,
+  applyFilters,
+  addCardVisible,
+  addForm,
+  submitAdd,
+  showAddCard,
+  editCardVisible,
+  editForm,
+  submitEdit,
+  showEditCard,
+  deleteCardVisible,
+  showDeleteCard,
+  submitDelete,
+  getPermissionTypeDescription,
+};
+},
 });
 </script>
-
 <style scoped>
 .permission-settings {
   text-align: center;
   padding: 20px;
   background-color: #1c1c1e;
   color: #ffffff;
+}
+
+.add-button {
+  position: fixed;
+  top: 75px;
+  left: 1680px;
+  width: 40px;
+  height: 40px;
+  background-color: #1caf29;
+  border-color: #ffffff00;
+  color: #e7e7e7;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .custom-table {
@@ -214,9 +447,6 @@ export default defineComponent({
 }
 
 .pagination {
-  position: fixed;
-  top: 910px;
-  left: 260px;
   text-align: center;
   margin-top: 20px;
 }
@@ -270,5 +500,30 @@ export default defineComponent({
 
 .filter-button:hover {
   color: #66b1ff;
+}
+
+.el-card {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: 400px;
+  transform: translate(-50%, -50%);
+  background-color: #2c2c2e;
+  color: #ffffff;
+  border: 1px solid #444;
+  border-radius: 15px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+}
+
+.dialog-footer {
+  text-align: right;
+  padding: 10px 0;
+}
+
+.close-button {
+  float: right;
+  font-size: 20px;
+  cursor: pointer;
 }
 </style>

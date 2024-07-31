@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.huawei.demo.sdkcenter.entity.dao.SdkInfo;
 import org.apache.ibatis.annotations.*;
 
+import java.util.List;
+
 @Mapper
 public interface SdkInfoMapper extends BaseMapper<SdkInfo> {
     @Insert("INSERT INTO sdk_info (id, sdk_name, pkg_name, version_name, version_code, category, icon_location, size, file_location, sha256_code, updatetime, createtime, audit_status) " +
@@ -27,4 +29,9 @@ public interface SdkInfoMapper extends BaseMapper<SdkInfo> {
 
     @Update("UPDATE sdk_info SET audit_status = #{auditStatus} WHERE sha256_code = #{sha256Code}")
     int updateAuditStatus(@Param("sha256Code") String sha256Code, @Param("auditStatus") Integer auditStatus);
+
+    @Select("SELECT * FROM sdk_info")
+    List<SdkInfo> selectAll();
+
+
 }
