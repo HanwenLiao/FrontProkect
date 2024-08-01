@@ -1,14 +1,14 @@
-package com.huawei.demo.sdkcenter.entity.resp;
+package com.huawei.demo.sdkcenter.entity.req;
 
 import lombok.Getter;
 import lombok.Setter;
 
 @Getter
 @Setter
-public class PermissionResp {
+public class PermissionReq {
     private String id;
     private String permissionName;
-    private Integer isSensitive;
+    private int isSensitive;
     private String description;
     private String permissionType;
 

@@ -37,4 +37,7 @@ public class SdkDetectTask {
 
     @TableField(value = "task_status")
     private Integer taskStatus;
+
+    @TableField(value = "task_statement")
+    private String taskStatement;
 }

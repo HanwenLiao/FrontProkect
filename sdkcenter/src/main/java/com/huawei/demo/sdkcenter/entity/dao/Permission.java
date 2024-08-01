@@ -36,7 +36,7 @@ public class Permission {
         return PermissionType.fromValue(this.permissionTypeValue);
     }
 
-    public void setPermissionType(PermissionType permissionType) {
+    public void setPermissionTypeNum(PermissionType permissionType) {
         this.permissionTypeValue = permissionType != null ? permissionType.getValue() : null;
     }
 }

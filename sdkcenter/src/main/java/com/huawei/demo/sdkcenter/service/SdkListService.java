@@ -21,25 +21,42 @@ public class SdkListService {
     @Autowired
     private SdkDetectTaskMapper sdkDetectTaskMapper;
 
-    public List<SdkListResp> getAllSdks() {
-        List<SdkInfo> sdkInfos = sdkInfoMapper.selectList(null);
-        return sdkInfos.stream().map(sdk -> {
-            SdkListResp resp = new SdkListResp();
-            resp.setSdkName(sdk.getSdkName());
-            resp.setPkgName(sdk.getPkgName());
-            resp.setVersionName(sdk.getVersionName());
-            resp.setCategoryValue(sdk.getCategoryValue());
-            resp.setIconLocation(sdk.getIconLocation());
-            resp.setSha256Code(sdk.getSha256Code());
-            resp.setSize(sdk.getSize());
-            resp.setUpdatetime(new Timestamp(sdk.getUpdatetime().getTime()));
-            resp.setAuditStatus(sdk.getAuditStatus());
+    public List<SdkListResp> getAllSdks(int page, int size) {
+        int offset = (page - 1) * size;
+        List<SdkListResp> sdkList = sdkInfoMapper.selectByPage(offset, size);
 
-            // 获取最新的检测任务状态
+        // 获取每个SDK的最新检测状态
+        for (SdkListResp sdk : sdkList) {
             Integer latestDetectStatus = sdkDetectTaskMapper.getLatestDetectStatusBySha256Code(sdk.getSha256Code());
-            resp.setDetectStatus(latestDetectStatus);
+            sdk.setDetectStatus(latestDetectStatus);
+        }
 
-            return resp;
-        }).collect(Collectors.toList());
+        return sdkList;
     }
+
+    public int getTotalCount() {
+        return sdkInfoMapper.selectTotalCount();
+    }
+
+//    public List<SdkListResp> getAllSdks() {
+//        List<SdkInfo> sdkInfos = sdkInfoMapper.selectList(null);
+//        return sdkInfos.stream().map(sdk -> {
+//            SdkListResp resp = new SdkListResp();
+//            resp.setSdkName(sdk.getSdkName());
+//            resp.setPkgName(sdk.getPkgName());
+//            resp.setVersionName(sdk.getVersionName());
+//            resp.setCategoryValue(sdk.getCategoryValue());
+//            resp.setIconLocation(sdk.getIconLocation());
+//            resp.setSha256Code(sdk.getSha256Code());
+//            resp.setSize(sdk.getSize());
+//            resp.setUpdatetime(new Timestamp(sdk.getUpdatetime().getTime()));
+//            resp.setAuditStatus(sdk.getAuditStatus());
+//
+//            // 获取最新的检测任务状态
+//            Integer latestDetectStatus = sdkDetectTaskMapper.getLatestDetectStatusBySha256Code(sdk.getSha256Code());
+//            resp.setDetectStatus(latestDetectStatus);
+//
+//            return resp;
+//        }).collect(Collectors.toList());
+//    }
 }

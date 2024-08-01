@@ -12,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -56,14 +57,8 @@ public class UploadService {
     public void handleUploadSdk(SdkUploadReq sdkUploadReq) {
         try {
             SdkInfo sdkInfo = createSdkInfo(sdkUploadReq);
-            SdkDetectTask sdkDetectTask = createSdkDetectTask(sdkUploadReq);
             sdkInfoMapper.insertOrUpdate(sdkInfo);
-            sdkDetectTaskMapper.insert(sdkDetectTask);
-            addSdkDetectTaskPermissions(sdkDetectTask);
-            HarUtil.deleteDirectory(TEMP_LOCATION);
-
-            // 生成报告并入库
-            generateAndSaveReport(sdkDetectTask);
+            handleAsyncDetectionTask(sdkInfo); // 调用异步方法
 
             new ResultBean<>(200, "Upload successful");
         } catch (IOException e) {
@@ -75,23 +70,14 @@ public class UploadService {
         }
     }
 
-
-        private SdkInfo createSdkInfo(SdkUploadReq sdkUploadReq) throws IOException {
-        SdkInfo sdkInfo = new SdkInfo();
-        sdkInfo.setCreatetime(new Date()); // 设置创建时间
-        sdkInfo.setAuditStatus(0); // 设置默认审核状态为待审核
-
-        if (isValidIcon(sdkUploadReq.getIcon())) {
-            String iconPath = saveMultipartFile(sdkUploadReq.getIcon(), ICON_LOCATION);
-            sdkInfo.setIconLocation(iconPath);
+    @Async
+    public void handleAsyncDetectionTask(SdkInfo sdkInfo) {
+        try {
+            SdkDetectTask sdkDetectTask = createSdkDetectTaskWithoutFiles(sdkInfo);
+            generateAndSaveReport(sdkDetectTask);
+        } catch (IOException e) {
+            log.error("Failed to handle async detection task: {}", e.getMessage(), e);
         }
-        if (isValidHar(sdkUploadReq.getHar())) {
-            String harPath = saveMultipartFile(sdkUploadReq.getHar(), HAR_LOCATION);
-            sdkInfo.setFileLocation(harPath);
-        }
-        HarUtil.harFileExtraction(new File(HAR_LOCATION, Objects.requireNonNull(sdkUploadReq.getHar().getOriginalFilename())).getAbsolutePath(), TEMP_LOCATION);
-        populateSdkInfo(sdkInfo, sdkUploadReq);
-        return sdkInfo;
     }
 
     public void generateAndSaveReport(SdkDetectTask sdkDetectTask) {
@@ -109,14 +95,27 @@ public class UploadService {
         sdkDetectTaskMapper.updateById(sdkDetectTask);
     }
 
-    public SdkDetectTask createSdkDetectTask(SdkUploadReq sdkUploadReq) throws IOException {
-        SdkDetectTask sdkDetectTask = new SdkDetectTask();
-        sdkDetectTask.setStartTime(currentTimestamp());
-        sdkDetectTask.setTaskStatus(TaskStatus.IN_PROGRESS.getValue());
-        populateSdkDetectTask(sdkDetectTask, sdkUploadReq);
-        sdkDetectTask.setEndTime(null); // 设置end_time为null
-        return sdkDetectTask;
+
+
+    private SdkInfo createSdkInfo(SdkUploadReq sdkUploadReq) throws IOException {
+        SdkInfo sdkInfo = new SdkInfo();
+        sdkInfo.setCreatetime(new Date()); // 设置创建时间
+        sdkInfo.setAuditStatus(0); // 设置默认审核状态为待审核
+
+        if (isValidIcon(sdkUploadReq.getIcon())) {
+            String iconPath = saveMultipartFile(sdkUploadReq.getIcon(), ICON_LOCATION);
+            sdkInfo.setIconLocation(iconPath);
+        }
+        if (isValidHar(sdkUploadReq.getHar())) {
+            String harPath = saveMultipartFile(sdkUploadReq.getHar(), HAR_LOCATION);
+            sdkInfo.setFileLocation(harPath);
+        }
+        HarUtil.harFileExtraction(new File(HAR_LOCATION, Objects.requireNonNull(sdkUploadReq.getHar().getOriginalFilename())).getAbsolutePath(), TEMP_LOCATION);
+        populateSdkInfo(sdkInfo, sdkUploadReq);
+        return sdkInfo;
     }
+
+
 
     public SdkDetectTask createSdkDetectTaskWithoutFiles(SdkInfo sdkInfo) throws IOException {
         SdkDetectTask sdkDetectTask = new SdkDetectTask();
@@ -217,17 +216,11 @@ public class UploadService {
         return new Timestamp(System.currentTimeMillis());
     }
 
-//    private String saveMultipartFile(MultipartFile file, String location) throws IOException {
-//        File dir = new File(location);
-//        File dest = new File(dir, Objects.requireNonNull(file.getOriginalFilename()));
-//        file.transferTo(dest);
-//        return dest.getAbsolutePath();
-//    }
     private String saveMultipartFile(MultipartFile file, String location) throws IOException {
         File dir = new File(location);
-        String uuidFileName = UUIDUtil.getUUID() + "_" + Objects.requireNonNull(file.getOriginalFilename());
-        File dest = new File(dir, uuidFileName);
+        File dest = new File(dir, Objects.requireNonNull(file.getOriginalFilename()));
         file.transferTo(dest);
         return dest.getAbsolutePath();
     }
+
 }

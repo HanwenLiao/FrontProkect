@@ -17,10 +17,6 @@
           <el-icon><Document /></el-icon>
           SDK管理
         </el-menu-item>
-        <el-menu-item index="detectTask">
-          <el-icon><Search /></el-icon>
-          检测任务
-        </el-menu-item>
         <el-menu-item index="permissionSettings">
           <el-icon><Setting /></el-icon>
           权限设置

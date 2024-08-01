@@ -20,7 +20,7 @@
             <el-table-column prop="id" label="检测ID" width="200"/>
             <el-table-column prop="startTime" label="开始时间" width="200" :formatter="formatTime"/>
             <el-table-column prop="endTime" label="结束时间" width="200" :formatter="formatTime"/>
-            <el-table-column prop="taskStatus" label="检测状态" width="100" :formatter="formatDetectionStatus">
+            <el-table-column prop="taskStatus" label="检测状态" width="100">
               <template #default="scope">
                 <el-icon :style="{ color: getStatusColor(scope.row.taskStatus) }" class="status-dot">●</el-icon>
                 {{ getDetectionStatus(scope.row.taskStatus) }}
@@ -32,6 +32,15 @@
               </template>
             </el-table-column>
           </el-table>
+          <el-pagination
+            background
+            layout="prev, pager, next"
+            :total="totalItems"
+            :page-size="pageSize"
+            :current-page.sync="currentPage"
+            @current-change="handlePageChange"
+            class="pagination"
+          />
           <transition name="fade">
             <div v-if="reportData">
               <detect-report :report="reportData" @close="handleCloseReport"/>
@@ -44,7 +53,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, onMounted } from 'vue';
+import { defineComponent, ref, onMounted, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import axios from 'axios';
 import { SdkListResp, SdkDetectTaskHistoryResp, SdkLatestReportResp } from '@/types/types';
@@ -63,18 +72,29 @@ export default defineComponent({
     const taskHistory = ref<SdkDetectTaskHistoryResp[]>([]);
     const currentSdk = ref<SdkListResp | null>(null);
     const reportData = ref<SdkLatestReportResp | null>(null);
+    const totalItems = ref(0);
+    const pageSize = ref(10);
+    const currentPage = ref(1);
 
     const fetchTaskHistory = async (sha256Code: string) => {
       try {
-        const response = await axios.get(`http://localhost:8080/api/detect-tasks/history/${sha256Code}`);
+        const response = await axios.get(`http://localhost:8080/api/detect-tasks/history/${sha256Code}`, {
+          params: {
+            page: currentPage.value,
+            pageSize: pageSize.value,
+          },
+        });
         if (response.data && response.data.code === 200) {
           taskHistory.value = response.data.data;
+          totalItems.value = response.data.total;
         } else {
           taskHistory.value = [];
+          totalItems.value = 0;
         }
       } catch (error) {
         console.error('Failed to fetch task history:', error);
         taskHistory.value = [];
+        totalItems.value = 0;
       }
     };
 
@@ -108,10 +128,6 @@ export default defineComponent({
     const formatTime = (row: any, column: any, cellValue: string) => {
       const date = new Date(cellValue);
       return date.toLocaleString();
-    };
-
-    const formatDetectionStatus = (row: any, column: any, cellValue: number) => {
-      return getDetectionStatus(cellValue);
     };
 
     const getIconUrl = (iconLocation: string | undefined) => {
@@ -152,6 +168,11 @@ export default defineComponent({
       router.push('/sdk-list');
     };
 
+    const handlePageChange = (page: number) => {
+      currentPage.value = page;
+      fetchTaskHistory(currentSdk.value?.sha256Code as string);
+    };
+
     onMounted(() => {
       const {
         sdkName,
@@ -183,12 +204,15 @@ export default defineComponent({
       reportData,
       viewReport,
       formatTime,
-      formatDetectionStatus,
       getIconUrl,
       getDetectionStatus,
       goBack,
       handleCloseReport,
       getStatusColor,
+      totalItems,
+      pageSize,
+      currentPage,
+      handlePageChange,
     };
   },
 });
@@ -338,5 +362,24 @@ transition: opacity 0.5s;
 .fade-enter, .fade-leave-to {
 opacity: 0;
 }
+.pagination {
+  position: fixed;
+  top: 910px;
+  left: 260px;
+  text-align: center;
+  margin-top: 20px;
+}
 
+.pagination .el-pagination__prev,
+.pagination .el-pagination__next,
+.pagination .el-pager li {
+  background-color: #2c2c2e;
+  color: #ffffff;
+}
+
+.pagination .el-pagination__prev:hover,
+.pagination .el-pagination__next:hover,
+.pagination .el-pager li:hover {
+  background-color: #444;
+}
 </style>

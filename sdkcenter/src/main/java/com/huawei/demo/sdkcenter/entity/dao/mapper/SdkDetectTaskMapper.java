@@ -29,4 +29,7 @@ public interface SdkDetectTaskMapper extends BaseMapper<SdkDetectTask> {
             "WHERE t.sha256_code = #{sha256Code} " +
             "ORDER BY t.end_time DESC")
     List<SdkDetectTaskHistoryResp> getDetectTaskHistoryBySha256(@Param("sha256Code") String sha256Code);
+
+    @Select("SELECT COUNT(*) FROM sdk_detect_task WHERE task_status = #{taskStatus}")
+    int selectCountByTaskStatus(@Param("taskStatus") int taskStatus);
 }

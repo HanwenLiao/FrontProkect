@@ -2,7 +2,7 @@
   "app": {
     "bundleName": "cn.allpublic.test.hmos",
     "versionCode": 1000000,
-    "versionName": "1.2.1",
+    "versionName": "1.0.0",
     "minAPIVersion": 50000012,
     "targetAPIVersion": 50000012,
     "apiReleaseType": "CanaryA",
@@ -28,9 +28,6 @@
       },
       {
         "name": "ohos.permission.GET_NETWORK_INFO"
-      },
-      {
-        "name": "ohos.permission.READ_CALENDAR"
       }
     ],
     "installationFree": false,

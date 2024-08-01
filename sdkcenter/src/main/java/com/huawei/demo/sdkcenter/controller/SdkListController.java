@@ -31,8 +31,9 @@ public class SdkListController {
     }
 
     @GetMapping("/all")
-    public ResultBean<List<SdkListResp>> getAllSdks() {
-        List<SdkListResp> sdkList = sdkListService.getAllSdks();
-        return new ResultBean<>(200, "Fetch successful", sdkList);
+    public ResultBean<List<SdkListResp>> getAllSdks(@RequestParam int page, @RequestParam int size) {
+        List<SdkListResp> sdkList = sdkListService.getAllSdks(page, size);
+        int total = sdkListService.getTotalCount();
+        return new ResultBean<>(200, "Fetch successful", sdkList, total);
     }
 }

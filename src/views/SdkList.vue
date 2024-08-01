@@ -37,7 +37,6 @@
                   </el-button>
                 </template>
               </el-popover>
-              
             </div>
           </template>
         </el-table-column>
@@ -75,7 +74,6 @@
                   </el-button>
                 </template>
               </el-popover>
-              
             </div>
           </template>
         </el-table-column>
@@ -91,7 +89,7 @@
     <el-pagination
       background
       layout="prev, pager, next"
-      :total="sdkList.length"
+      :total="totalItems"
       :page-size="pageSize"
       :current-page.sync="currentPage"
       @current-change="handlePageChange"
@@ -139,9 +137,10 @@ export default defineComponent({
     const router = useRouter();
     const sdkList = ref<SdkListResp[]>([]);
     const pagedData = ref<SdkListResp[]>([]);
-    const loading = ref(true);
-    const pageSize = 8;
+    const loading = ref(false);
+    const pageSize = ref(8);
     const currentPage = ref(1);
+    const totalItems = ref(0);
 
     const categoryFilter = ref<number[]>([]);
     const auditStatusFilter = ref<number[]>([]);
@@ -175,66 +174,72 @@ export default defineComponent({
       { value: 22, label: '深链' },
       { value: 23, label: '其他' },
     ];
-
     const auditStatuses = [
-      { value: 0, label: '待审核' },
-      { value: 1, label: '通过' },
-      { value: 2, label: '不通过' },
-    ];
+  { value: 0, label: '待审核' },
+  { value: 1, label: '通过' },
+  { value: 2, label: '不通过' },
+];
 
-    const fetchSdkList = async () => {
-      loading.value = true;
-      try {
-        const response = await axios.get('http://localhost:8080/api/sdk-list/all');
-        if (response.data && response.data.code === 200) {
-          sdkList.value = response.data.data;
-          handlePageChange(1);
-        } else {
-          sdkList.value = [];
-        }
-      } catch (error) {
-        console.error('Failed to fetch SDK list:', error);
-        sdkList.value = [];
+const fetchSdkList = async () => {
+  loading.value = true;
+  try {
+    const response = await axios.get('http://localhost:8080/api/sdk-list/all', {
+      params: {
+        page: currentPage.value,
+        size: pageSize.value
       }
-      loading.value = false;
-    };
-
-    const goToUploadPage = () => {
-      router.push('/upload-sdk');
-    };
-
-    const showAuditCard = (sdk: SdkListResp) => {
-      currentSdk.value = sdk;
-      selectedAuditStatus.value = sdk.auditStatus || 0;
-      auditCardVisible.value = true;
-    };
-
-    const submitAudit = async () => {
-      if (!currentSdk.value) return;
-try {
-const response = await axios.post('http://localhost:8080/api/sdk-list/update-audit-status', null, {
-params: {
-sha256Code: currentSdk.value.sha256Code,
-auditStatus: selectedAuditStatus.value,
-},
-});
-if (response.data && response.data.code === 200) {
-ElMessage.success('审核状态更新成功');
-fetchSdkList();
-auditCardVisible.value = false;
-} else {
-ElMessage.error('审核状态更新失败:' + response.data.message);
-}
-} catch (error) {
-if (axios.isAxiosError(error) && error.response) {
-ElMessage.error('审核状态更新请求失败:' + error.response.data.message);
-} else if (error instanceof Error) {
-ElMessage.error('审核状态更新请求失败:' + error.message);
-} else {
-ElMessage.error('审核状态更新请求失败');
-}
-}
+    });
+    if (response.data && response.data.code === 200) {
+      sdkList.value = response.data.data;
+      totalItems.value = response.data.total;
+      applyFilters();
+    } else {
+      sdkList.value = [];
+    }
+  } catch (error) {
+    console.error('Failed to fetch SDK list:', error);
+    sdkList.value = [];
+  }
+  loading.value = false;
 };
+
+const goToUploadPage = () => {
+  router.push('/upload-sdk');
+};
+
+const showAuditCard = (sdk: SdkListResp) => {
+  currentSdk.value = sdk;
+  selectedAuditStatus.value = sdk.auditStatus || 0;
+  auditCardVisible.value = true;
+};
+
+const submitAudit = async () => {
+  if (!currentSdk.value) return;
+  try {
+    const response = await axios.post('http://localhost:8080/api/sdk-list/update-audit-status', null, {
+      params: {
+        sha256Code: currentSdk.value.sha256Code,
+        auditStatus: selectedAuditStatus.value,
+      },
+    });
+    if (response.data && response.data.code === 200) {
+      ElMessage.success('审核状态更新成功');
+      fetchSdkList();
+      auditCardVisible.value = false;
+    } else {
+      ElMessage.error('审核状态更新失败:' + response.data.message);
+    }
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      ElMessage.error('审核状态更新请求失败:' + error.response.data.message);
+    } else if (error instanceof Error) {
+      ElMessage.error('审核状态更新请求失败:' + error.message);
+    } else {
+      ElMessage.error('审核状态更新请求失败');
+    }
+  }
+};
+
 const goToHistoryPage = (sdk: SdkListResp) => {
   router.push({
     name: 'SdkHistory',
@@ -269,7 +274,7 @@ const retryDetection = async (sdk: SdkListResp) => {
 };
 
 const formatTime = (row: any, column: any, cellValue: string) => {
-  const date= new Date(cellValue);
+  const date = new Date(cellValue);
   return date.toLocaleString();
 };
 
@@ -323,7 +328,7 @@ const getAuditStatusColor = (status: number) => {
 
 const handlePageChange = (page: number) => {
   currentPage.value = page;
-  applyFilters();
+  fetchSdkList();
 };
 
 const applyFilters = () => {
@@ -337,8 +342,8 @@ const applyFilters = () => {
     filtered = filtered.filter(sdk => auditStatusFilter.value.includes(sdk.auditStatus));
   }
 
-  const start = (currentPage.value - 1) * pageSize;
-  const end = start + pageSize;
+  const start = (currentPage.value - 1) * pageSize.value;
+  const end = start + pageSize.value;
   pagedData.value = filtered.slice(start, end);
 };
 
@@ -346,9 +351,7 @@ onMounted(() => {
   fetchSdkList();
 });
 
-watch(sdkList, () => {
-  applyFilters();
-});
+watch([categoryFilter, auditStatusFilter], applyFilters);
 
 return {
   sdkList,
@@ -356,6 +359,7 @@ return {
   loading,
   pageSize,
   currentPage,
+  totalItems,
   showAuditCard,
   auditCardVisible,
   selectedAuditStatus,
@@ -379,6 +383,7 @@ return {
 };
 },
 });
+
 </script>
 <style scoped>
 .sdk-list {

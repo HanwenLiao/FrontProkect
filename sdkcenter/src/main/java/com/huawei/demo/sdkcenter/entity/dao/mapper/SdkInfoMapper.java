@@ -2,6 +2,7 @@ package com.huawei.demo.sdkcenter.entity.dao.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.huawei.demo.sdkcenter.entity.dao.SdkInfo;
+import com.huawei.demo.sdkcenter.entity.resp.SdkListResp;
 import org.apache.ibatis.annotations.*;
 
 import java.util.List;
@@ -32,6 +33,12 @@ public interface SdkInfoMapper extends BaseMapper<SdkInfo> {
 
     @Select("SELECT * FROM sdk_info")
     List<SdkInfo> selectAll();
+
+    @Select("SELECT * FROM sdk_info LIMIT #{offset}, #{size}")
+    List<SdkListResp> selectByPage(@Param("offset") int offset, @Param("size") int size);
+
+    @Select("SELECT COUNT(*) FROM sdk_info")
+    int selectTotalCount();
 
 
 }

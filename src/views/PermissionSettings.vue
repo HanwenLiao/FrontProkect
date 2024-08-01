@@ -1,7 +1,7 @@
 <template>
   <div class="permission-settings">
     <el-button class="add-button" @click="showAddCard">
-      <el-icon><Plus /></el-icon> 
+      <el-icon><Plus /></el-icon>
     </el-button>
     <el-table :data="pagedData" class="custom-table">
       <el-table-column prop="id" label="ID" width="80"/>
@@ -247,13 +247,12 @@ export default defineComponent({
       { value: 'FITNESS', description: '健身运动' },
       { value: 'DISTRIBUTED_DATA_MANAGEMENT', description: '分布式数据管理' }
     ];
-
     const fetchPermissions = async () => {
   try {
-    const response = await axios.get<Permission[]>('http://localhost:8080/permissions');
-    if (response.data) {
-      permissions.value = response.data;
-      totalPermissions.value = response.data.length;
+    const response = await axios.get('http://localhost:8080/api/permissions');
+    if (response.data && response.data.code === 200) {
+      permissions.value = response.data.data;
+      totalPermissions.value = response.data.total;
       handlePageChange(1);
     }
   } catch (error) {
@@ -268,9 +267,9 @@ const handlePageChange = (page: number) => {
 
 const toggleSensitive = async (permission: Permission) => {
   try {
-    const response = await axios.put<Permission>(`http://localhost:8080/permissions/${permission.id}/toggle-sensitive`);
-    if (response.data) {
-      const updatedPermission = response.data;
+    const response = await axios.put(`http://localhost:8080/api/permissions/${permission.id}/toggle-sensitive`);
+    if (response.data && response.data.code === 200) {
+      const updatedPermission = response.data.data;
       const index = permissions.value.findIndex((p) => p.id === updatedPermission.id);
       if (index !== -1) {
         permissions.value[index] = updatedPermission;
@@ -322,9 +321,9 @@ const showAddCard = () => {
 
 const submitAdd = async () => {
   try {
-    const response = await axios.post<Permission>('http://localhost:8080/permissions/add', addForm.value);
-    if (response.data) {
-      permissions.value.push(response.data);
+    const response = await axios.post('http://localhost:8080/api/permissions/add', addForm.value);
+    if (response.data && response.data.code === 200) {
+      permissions.value.push(response.data.data);
       applyFilters();
       addCardVisible.value = false;
       ElMessage.success('添加成功');
@@ -344,11 +343,11 @@ const showEditCard = (permission: Permission) => {
 const submitEdit = async () => {
   if (!currentPermission.value) return;
   try {
-    const response = await axios.put<Permission>(`http://localhost:8080/permissions/${currentPermission.value.id}/update`, editForm.value);
-    if (response.data) {
+    const response = await axios.put(`http://localhost:8080/api/permissions/${currentPermission.value.id}/update`, editForm.value);
+    if (response.data && response.data.code === 200) {
       const index = permissions.value.findIndex((p) => p.id === currentPermission.value!.id);
       if (index !== -1) {
-        permissions.value[index] = response.data;
+        permissions.value[index] = response.data.data;
         applyFilters();
         editCardVisible.value = false;
         ElMessage.success('编辑成功');
@@ -368,11 +367,13 @@ const showDeleteCard = (permission: Permission) => {
 const submitDelete = async () => {
   if (!currentPermission.value) return;
   try {
-    await axios.delete(`http://localhost:8080/permissions/${currentPermission.value.id}/delete`);
-    permissions.value = permissions.value.filter(p => p.id !== currentPermission.value!.id);
-    applyFilters();
-    deleteCardVisible.value = false;
-    ElMessage.success('删除成功');
+    const response = await axios.delete(`http://localhost:8080/api/permissions/${currentPermission.value.id}/delete`);
+    if (response.data && response.data.code === 200) {
+      permissions.value = permissions.value.filter(p => p.id !== currentPermission.value!.id);
+      applyFilters();
+      deleteCardVisible.value = false;
+      ElMessage.success('删除成功');
+    }
   } catch (error) {
     console.error('Failed to delete permission:', error);
     ElMessage.error('删除失败');
