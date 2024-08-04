@@ -26,4 +26,9 @@ public class DashboardController {
     public ResultBean<Map<String, Integer>> getCategoryDistribution() {
         return dashboardService.getCategoryDistribution();
     }
+
+    @GetMapping("/sdk-stats/heatmap")
+    public ResultBean<Map<String, Map<String, Integer>>> getHeatmapData(@RequestParam(value = "sensitiveOnly", defaultValue = "false") boolean sensitiveOnly) {
+        return dashboardService.getHeatmapData(sensitiveOnly);
+    }
 }

@@ -8,4 +8,6 @@ import lombok.Setter;
 public class SdkStatsResponse {
     private int totalSdkCount;
     private int riskySdkCount;
+    private int approvedSdkCount;
+    private int rejectedSdkCount;
 }

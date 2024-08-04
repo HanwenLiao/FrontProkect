@@ -32,4 +32,8 @@ public interface SdkDetectTaskMapper extends BaseMapper<SdkDetectTask> {
 
     @Select("SELECT COUNT(*) FROM sdk_detect_task WHERE task_status = #{taskStatus}")
     int selectCountByTaskStatus(@Param("taskStatus") int taskStatus);
+
+    @Select("SELECT * FROM sdk_detect_task WHERE sha256_code = #{sha256Code} ORDER BY end_time DESC LIMIT 1")
+    SdkDetectTask getLatestTaskBySha256Code(@Param("sha256Code") String sha256Code);
+
 }
