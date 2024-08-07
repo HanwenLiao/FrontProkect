@@ -95,27 +95,7 @@
       @current-change="handlePageChange"
       class="pagination"
     />
-
-    <!-- 审核卡片 -->
-    <div v-if="auditCardVisible" class="audit-card">
-      <el-card class="box-card">
-        <div slot="header" class="clearfix">
-          <span>审核SDK</span>
-          <el-button @click="auditCardVisible = false" type="text" class="close-button">×</el-button>
-        </div>
-        <div>
-          <span>请选择审核结果：</span>
-          <el-radio-group v-model="selectedAuditStatus">
-            <el-radio :label="1">通过</el-radio>
-            <el-radio :label="2">不通过</el-radio>
-          </el-radio-group>
-        </div>
-        <div class="dialog-footer">
-          <el-button @click="auditCardVisible = false">取消</el-button>
-          <el-button type="primary" @click="submitAudit">提交</el-button>
-        </div>
-      </el-card>
-    </div>
+    <SdkAudit v-if="auditCardVisible" :sdk="currentSdk" @close="closeAuditCard" />
   </div>
 </template>
 
@@ -126,12 +106,14 @@ import axios from 'axios';
 import { SdkListResp } from '@/types/types';
 import { Plus, ArrowDown } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
+import SdkAudit from './SdkAudit.vue';
 
 export default defineComponent({
   name: 'SdkList',
   components: {
     Plus,
     ArrowDown,
+    SdkAudit,
   },
   setup() {
     const router = useRouter();
@@ -146,7 +128,6 @@ export default defineComponent({
     const auditStatusFilter = ref<number[]>([]);
 
     const auditCardVisible = ref(false);
-    const selectedAuditStatus = ref(0);
     const currentSdk = ref<SdkListResp | null>(null);
 
     const categories = [
@@ -175,83 +156,61 @@ export default defineComponent({
       { value: 23, label: '其他' },
     ];
     const auditStatuses = [
-  { value: 0, label: '待审核' },
-  { value: 1, label: '通过' },
-  { value: 2, label: '不通过' },
-];
+      { value: 0, label: '待审核' },
+      { value: 1, label: '通过' },
+      { value: 2, label: '不通过' },
+    ];
 
-const fetchSdkList = async () => {
-  loading.value = true;
-  try {
-    const response = await axios.get('http://localhost:8080/api/sdk-list/all', {
-      params: {
-        page: currentPage.value,
-        size: pageSize.value
+    const fetchSdkList = async () => {
+      loading.value = true;
+      try {
+        const response = await axios.get('http://localhost:8080/api/sdk-list/all', {
+          params: {
+            page: currentPage.value,
+            size: pageSize.value
+          }
+        });
+        if (response.data && response.data.code === 200) {
+          sdkList.value = response.data.data;
+          totalItems.value = response.data.total;
+          applyFilters();
+        } else {
+          sdkList.value = [];
+        }
+      } catch (error) {
+        console.error('Failed to fetch SDK list:', error);
+        sdkList.value = [];
       }
-    });
-    if (response.data && response.data.code === 200) {
-      sdkList.value = response.data.data;
-      totalItems.value = response.data.total;
-      applyFilters();
-    } else {
-      sdkList.value = [];
-    }
-  } catch (error) {
-    console.error('Failed to fetch SDK list:', error);
-    sdkList.value = [];
-  }
-  loading.value = false;
-};
+      loading.value = false;
+    };
 
-const goToUploadPage = () => {
-  router.push('/upload-sdk');
-};
+    const goToUploadPage = () => {
+      router.push('/upload-sdk');
+    };
 
-const showAuditCard = (sdk: SdkListResp) => {
-  currentSdk.value = sdk;
-  selectedAuditStatus.value = sdk.auditStatus || 0;
-  auditCardVisible.value = true;
-};
+    const showAuditCard = (sdk: SdkListResp) => {
+      currentSdk.value = sdk;
+      auditCardVisible.value = true;
+    };
 
-const submitAudit = async () => {
-  if (!currentSdk.value) return;
-  try {
-    const response = await axios.post('http://localhost:8080/api/sdk-list/update-audit-status', null, {
-      params: {
-        sha256Code: currentSdk.value.sha256Code,
-        auditStatus: selectedAuditStatus.value,
-      },
-    });
-    if (response.data && response.data.code === 200) {
-      ElMessage.success('审核状态更新成功');
-      fetchSdkList();
+    const closeAuditCard = () => {
       auditCardVisible.value = false;
-    } else {
-      ElMessage.error('审核状态更新失败:' + response.data.message);
-    }
-  } catch (error) {
-    if (axios.isAxiosError(error) && error.response) {
-      ElMessage.error('审核状态更新请求失败:' + error.response.data.message);
-    } else if (error instanceof Error) {
-      ElMessage.error('审核状态更新请求失败:' + error.message);
-    } else {
-      ElMessage.error('审核状态更新请求失败');
-    }
-  }
-};
+      fetchSdkList(); // 重新获取列表数据以反映最新审核状态
+    };
 
-const goToHistoryPage = (sdk: SdkListResp) => {
-  router.push({
-    name: 'SdkHistory',
-    params: {
-      sha256Code: sdk.sha256Code,
-      sdkName: sdk.sdkName,
-      pkgName: sdk.pkgName,
-      versionName: sdk.versionName,
-      iconLocation: sdk.iconLocation,
-    },
-  });
-};
+    const goToHistoryPage = (sdk: SdkListResp) => {
+      router.push({
+        name: 'SdkHistory',
+        params: {
+          sha256Code: sdk.sha256Code,
+          sdkName: sdk.sdkName,
+          pkgName: sdk.pkgName,
+          versionName: sdk.versionName,
+          iconLocation: sdk.iconLocation,
+        },
+      });
+    };
+
 
 const retryDetection = async (sdk: SdkListResp) => {
   try {                               
@@ -362,8 +321,7 @@ return {
   totalItems,
   showAuditCard,
   auditCardVisible,
-  selectedAuditStatus,
-  submitAudit,
+  currentSdk,
   formatTime,
   getIconUrl,
   getCategory,
@@ -380,11 +338,12 @@ return {
   categories,
   auditStatuses,
   applyFilters,
+  closeAuditCard,
 };
 },
 });
-
 </script>
+
 <style scoped>
 .sdk-list {
   text-align: center;
@@ -531,30 +490,29 @@ return {
   margin: 5px 0;
 }
 
-.filter
--option:hover {
-background-color: #444;
+.filter-option:hover {
+  background-color: #444;
 }
 
 .filter-button {
-color: #ffffff;
+  color: #ffffff;
 }
 
 .filter-button:hover {
-color: #66b1ff;
+  color: #66b1ff;
 }
 
 .audit-card {
-position: fixed;
-top: 100px;
-right: 100px;
-z-index: 1000;
-width: 400px;
+  position: fixed;
+  top: 100px;
+  right: 100px;
+  z-index: 1000;
+  width: 400px;
 }
 
 .close-button {
-float: right;
-font-size: 18px;
-cursor: pointer;
+  float: right;
+  font-size: 18px;
+  cursor: pointer;
 }
 </style>
