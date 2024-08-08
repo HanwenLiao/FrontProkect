@@ -27,23 +27,23 @@
       </el-card>
     </div>
     <div class="chart-container">
-      <el-card class="sdkCategoryChartCard">
+      <el-card class="sdkSensitiveTableCard">
         <div slot="header" class="clearfix">
-          <span>SDK 种类分布</span>
+          <span>敏感权限统计</span>
         </div>
-        <div ref="chart" class="chart"></div>
+        <el-table :data="sdkSensitiveData" stripe @row-click="handleRowClick">
+          <el-table-column prop="category" label="SDK种类" width="180"></el-table-column>
+          <el-table-column prop="total" label="总数" width="100"></el-table-column>
+          <el-table-column prop="risky" label="有风险" width="100"></el-table-column>
+          <el-table-column prop="percentage" label="风险比例" width="100"></el-table-column>
+          <el-table-column prop="mostSensitivePermission" label="最敏感权限分类" width="180"></el-table-column>
+        </el-table>
       </el-card>
-      <el-card class="sdkBarChartCard">
+      <el-card class="sdkSensitiveChartCard">
         <div slot="header" class="clearfix">
-          <span>SDK 分类条形图</span>
+          <span>敏感权限分布</span>
         </div>
-        <div ref="barChart" class="barchart"></div>
-      </el-card>
-      <el-card class="sdkPermissionDistributionCard">
-        <div slot="header" class="clearfix">
-          <span>权限种类分布</span>
-        </div>
-        <div ref="permissionChart" class="permissionchart"></div>
+        <div ref="sensitivePermissionChart" class="sensitivePermissionChart"></div>
       </el-card>
     </div>
   </div>
@@ -60,11 +60,13 @@ interface ChartDataItem {
   value: number;
 }
 
-const categories = [
-  "生活服务", "安全", "媒体", "AI", "平台服务", "广告", "支付", "分析", "社交", 
-  "金融理财", "工具", "账号登录", "游戏", "框架", "性能监控", "网络", "推送", 
-  "地图定位", "存储", "电商服务", "AR/VR", "深链", "其他"
-];
+interface SensitiveDataItem {
+  category: string;
+  total: number;
+  risky: number;
+  percentage: string;
+  mostSensitivePermission: string;
+}
 
 export default defineComponent({
   name: 'Home',
@@ -77,9 +79,35 @@ export default defineComponent({
     const animatedRiskySdkCount = ref(0);
     const animatedApprovedSdkCount = ref(0);
     const animatedRejectedSdkCount = ref(0);
-    const chart = ref<HTMLDivElement | null>(null);
-    const barChart = ref<HTMLDivElement | null>(null);
-    const permissionChart = ref<HTMLDivElement | null>(null);
+    const sensitivePermissionChart = ref<HTMLDivElement | null>(null);
+    const sdkSensitiveData = ref<SensitiveDataItem[]>([]);
+    const defaultSensitiveData = ref<ChartDataItem[]>([]);
+
+    const categoryMap: Record<string, number> = {
+      "生活服务": 1,
+      "安全": 2,
+      "媒体": 3,
+      "AI": 4,
+      "平台服务": 5,
+      "广告": 6,
+      "支付": 7,
+      "分析": 8,
+      "社交": 9,
+      "金融理财": 10,
+      "工具": 11,
+      "账号登录": 12,
+      "游戏": 13,
+      "框架": 14,
+      "性能监控": 15,
+      "网络": 16,
+      "推送": 17,
+      "地图定位": 18,
+      "存储": 19,
+      "电商服务": 20,
+      "AR/VR": 21,
+      "深链": 22,
+      "其他": 23,
+    };
 
     const fetchCounts = async () => {
       try {
@@ -98,42 +126,22 @@ export default defineComponent({
       }
     };
 
-    const fetchCategoryDistribution = async () => {
+    const fetchSensitiveData = async () => {
       try {
-        const response = await axios.get('http://localhost:8080/api/sdk-stats/category-distribution');
+        const response = await axios.get('http://localhost:8080/api/sdk-stats/sensitive-data');
         if (response.data && response.data.code === 200) {
-          const data: ChartDataItem[] = Object.keys(response.data.data).map(key => ({
-            name: key,
-            value: response.data.data[key]
-          }));
-          renderPieChart(data);
+          sdkSensitiveData.value = response.data.data.tableData;
+          defaultSensitiveData.value = response.data.data.chartData;
+          renderSensitivePermissionChart(defaultSensitiveData.value);
         } else {
-          console.error('Failed to fetch category distribution:', response.data.message);
+          console.error('Failed to fetch sensitive data:', response.data.message);
         }
       } catch (error) {
-        console.error('Error fetching category distribution:', error);
+        console.error('Error fetching sensitive data:', error);
       }
     };
 
-    const fetchBarChartData = async () => {
-      try {
-        const response = await axios.get('http://localhost:8080/api/sdk-stats/category-distribution');
-        if (response.data && response.data.code === 200) {
-          // Include all categories, even those with zero count
-          const data: ChartDataItem[] = categories.map(category => ({
-            name: category,
-            value: response.data.data[category] || 0
-          }));
-          renderBarChart(data);
-        } else {
-          console.error('Failed to fetch bar chart data:', response.data.message);
-        }
-      } catch (error) {
-        console.error('Error fetching bar chart data:', error);
-      }
-    };
-
-    const fetchPermissionDistribution = async (category: string) => {
+    const fetchPermissionDistribution = async (category: number) => {
       try {
         const response = await axios.get('http://localhost:8080/api/sdk-stats/permission-distribution', {
           params: {
@@ -145,7 +153,7 @@ export default defineComponent({
             name: key,
             value: response.data.data[key]
           }));
-          renderPermissionChart(data);
+          renderSensitivePermissionChart(data);
         } else {
           console.error('Failed to fetch permission distribution:', response.data.message);
         }
@@ -188,20 +196,25 @@ export default defineComponent({
       });
     };
 
-    const renderPieChart = (data: ChartDataItem[]) => {
-      if (chart.value) {
-        const chartInstance = echarts.init(chart.value);
+    const renderSensitivePermissionChart = (data: ChartDataItem[]) => {
+      if (sensitivePermissionChart.value) {
+        const chartInstance = echarts.init(sensitivePermissionChart.value);
         const options = {
           tooltip: {
             trigger: 'item'
           },
           legend: {
-            top: '5%',
-            left: 'center'
+            orient: 'vertical',
+            right: '10%',
+            top: 'center',
+            formatter: (name: string) => {
+              const item = data.find(d => d.name === name);
+              return item ? `${name}: ${item.value}%` : name;
+            }
           },
           series: [
             {
-              name: 'SDK 种类',
+              name: '敏感权限',
               type: 'pie',
               radius: ['40%', '70%'],
               avoidLabelOverlap: false,
@@ -227,116 +240,36 @@ export default defineComponent({
       }
     };
 
-    const renderBarChart = (data: ChartDataItem[]) => {
-      if (barChart.value) {
-        const chartInstance = echarts.init(barChart.value);
-        const options = {
-          tooltip: {
-            trigger: 'axis',
-            axisPointer: {
-              type: 'shadow'
-            }
-          },
-          xAxis: {
-            type: 'category',
-            data: data.map(item => item.name),
-            axisLabel: {
-              rotate: 90,
-              interval: 0
-            },
-            axisTick: {
-              alignWithLabel: true
-            }
-          },
-          yAxis: {
-            type: 'value'
-          },
-          series: [
-            {
-              name: '数量',
-              type: 'bar',
-              barWidth: '60%',
-              data: data.map(item => item.value),
-              emphasis: {
-                itemStyle: {
-                  color: '#ff2d55'
-                }
-              }
-            }
-          ]
-        };
-        chartInstance.on('mouseover', params => {
-          if (params.componentType === 'series') {
-            const category = params.name;
-            fetchPermissionDistribution(category);
-          }
-        });
-        
-        chartInstance.setOption(options);
-
-      }
+    const handleRowClick = (row: SensitiveDataItem) => {
+      const categoryNumber = categoryMap[row.category];
+      fetchPermissionDistribution(categoryNumber);
     };
 
-    const renderPermissionChart = (data: ChartDataItem[]) => {
-      if (permissionChart.value) {
-        const chartInstance = echarts.init(permissionChart.value);
-        const options = {
-          tooltip: {
-            trigger: 'item'
-          },
-          legend: {
-            top: '5%',
-            left: 'center'
-          },
-          series: [
-            {
-              name: '权限种类',
-              type: 'pie',
-              radius: ['40%', '70%'],
-              avoidLabelOverlap:false,
-label: {
-show: false,
-position: 'center'
-},
-emphasis: {
-label: {
-show: true,
-fontSize: '30',
-fontWeight: 'bold'
-}
-},
-labelLine: {
-show: false
-},
-data
-}
-]
-};
-chartInstance.setOption(options);
-}
-};
-onMounted(() => {
-  fetchCounts();
-  fetchCategoryDistribution();
-  fetchBarChartData();
-});
+    const handleRowMouseOut = () => {
+      renderSensitivePermissionChart(defaultSensitiveData.value);
+    };
 
-return {
-  totalSdkCount,
-  riskySdkCount,
-  approvedSdkCount,
-  rejectedSdkCount,
-  animatedTotalSdkCount,
-  animatedRiskySdkCount,
-  animatedApprovedSdkCount,
-  animatedRejectedSdkCount,
-  chart,
-  barChart,
-  permissionChart
+    onMounted(() => {
+      fetchCounts();
+      fetchSensitiveData();
+    });
+
+    return {
+      totalSdkCount,
+      riskySdkCount,
+      approvedSdkCount,
+      rejectedSdkCount,
+      animatedTotalSdkCount,
+      animatedRiskySdkCount,
+      animatedApprovedSdkCount,
+      animatedRejectedSdkCount,
+      sensitivePermissionChart,
+sdkSensitiveData,
+handleRowClick,
+handleRowMouseOut
 };
 },
 });
-
 </script>
 <style scoped>
 .home {
@@ -354,12 +287,6 @@ return {
   display: flex;
   justify-content: center;
   margin-top: 40px;
-}
-
-.permission-distribution-container {
-  display: flex;
-  justify-content: center;
-  margin-top: 20px;
 }
 
 .sdkTotalCard {
@@ -420,60 +347,36 @@ return {
   color: #ff2d55;
 }
 
-.el-card.sdkCategoryChartCard {
+.el-card.sdkSensitiveTableCard {
   position: fixed;
   top: 280px;
   left: 240px;
-  width: 400px;
+  width: 700px;
   height: 650px;
   color: #ffffff;
   background: linear-gradient(145deg, #313131, #353535);
   border-radius: 15px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  border:#313131;
+  border: #313131;
 }
 
-.el-card.sdkBarChartCard {
+.el-card.sdkSensitiveChartCard {
   position: fixed;
   top: 280px;
-  left: 650px;
-  width: 1220px;
+  left: 950px;
+  width: 800px;
   height: 650px;
   color: #ffffff;
   background: linear-gradient(145deg, #313131, #353535);
   border-radius: 15px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  border:#313131;
+  border: #313131;
 }
 
-.el-card.sdkPermissionDistributionCard {
-  position: fixed;
-  top: 280px;
-  left: 50px;
-  width: 120px;
-  height: 650px;
-  color: #ffffff;
-  background: linear-gradient(145deg, #313131, #353535);
-  border-radius: 15px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  border:#313131;
-}
-
-.chart {
-  width: 380px;
-  height: 620px;
-  color: rgb(255, 255, 255);
-}
-
-.barchart {
-  width: 1200px;
-  height: 620px;
-  color: rgb(255, 255, 255);
-}
-
-.permission-chart {
-  width: 1180px;
+.sensitivePermissionChart {
+  width: 600px;
   height: 620px;
   color: rgb(255, 255, 255);
 }
 </style>
+

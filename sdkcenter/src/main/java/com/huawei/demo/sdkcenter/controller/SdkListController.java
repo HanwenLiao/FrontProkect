@@ -21,7 +21,8 @@ public class SdkListController {
     private AuditService auditService;
 
     @PostMapping("/update-audit-status")
-    public ResultBean<String> updateAuditStatus(@RequestParam String sha256Code, @RequestParam Integer auditStatus) {
+    public ResultBean<String> updateAuditStatus(@RequestParam String sha256Code, @RequestParam Integer auditStatus, @RequestParam String auditStatement) {
+        auditService.createAuditTask(auditStatus,auditStatement,sha256Code);
         int result = auditService.updateAuditStatus(sha256Code, auditStatus);
         if (result > 0) {
             return new ResultBean<>(200, "Audit status updated successfully");

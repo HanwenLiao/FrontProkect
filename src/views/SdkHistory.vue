@@ -15,8 +15,8 @@
         </div>
       </div>
       <transition name="fade">
-        <div class="content" v-if="taskHistory.length > 0">
-          <el-table :data="taskHistory" class="custom-table">
+        <div class="content" v-if="pagedTaskHistory.length > 0">
+          <el-table :data="pagedTaskHistory" class="custom-table">
             <el-table-column prop="id" label="检测ID" width="200"/>
             <el-table-column prop="startTime" label="开始时间" width="200" :formatter="formatTime"/>
             <el-table-column prop="endTime" label="结束时间" width="200" :formatter="formatTime"/>
@@ -78,15 +78,11 @@ export default defineComponent({
 
     const fetchTaskHistory = async (sha256Code: string) => {
       try {
-        const response = await axios.get(`http://localhost:8080/api/detect-tasks/history/${sha256Code}`, {
-          params: {
-            page: currentPage.value,
-            pageSize: pageSize.value,
-          },
-        });
+        const response = await axios.get(`http://localhost:8080/api/detect-tasks/history/${sha256Code}`);
         if (response.data && response.data.code === 200) {
           taskHistory.value = response.data.data;
-          totalItems.value = response.data.total;
+          totalItems.value = taskHistory.value.length;
+          handlePageChange(1);
         } else {
           taskHistory.value = [];
           totalItems.value = 0;
@@ -170,8 +166,10 @@ export default defineComponent({
 
     const handlePageChange = (page: number) => {
       currentPage.value = page;
-      fetchTaskHistory(currentSdk.value?.sha256Code as string);
+      pagedTaskHistory.value = taskHistory.value.slice((page - 1) * pageSize.value, page * pageSize.value);
     };
+
+    const pagedTaskHistory = ref<SdkDetectTaskHistoryResp[]>([]);
 
     onMounted(() => {
       const {
@@ -200,6 +198,7 @@ export default defineComponent({
 
     return {
       taskHistory,
+      pagedTaskHistory,
       currentSdk,
       reportData,
       viewReport,
@@ -268,46 +267,46 @@ export default defineComponent({
 }
 
 .back-button:hover {
-  background-color: #66b1ff;
+background-color: #66b1ff;
 }
 
 .sdk-info {
-  display: flex;
-  align-items: center;
-  margin-bottom: 20px;
+display: flex;
+align-items: center;
+margin-bottom: 20px;
 }
 
 .icon-image-large {
-  width: 150px;
-  height: 150px;
-  object-fit: contain;
-  margin-right: 20px;
-  margin-top: 40px;
+width: 150px;
+height: 150px;
+object-fit: contain;
+margin-right: 20px;
+margin-top: 40px;
 }
 
 .sdk-details {
-  text-align: left;
+text-align: left;
 }
 
 .sdk-details p {
-  font-size: 20px;
-  margin: 5px 0;
+font-size: 20px;
+margin: 5px 0;
 }
 
 .detail-value {
-  color: #66b1ff;
-  font-weight: bold;
+color: #66b1ff;
+font-weight: bold;
 }
 
 .content {
-  display: flex;
+display: flex;
 }
 
 .custom-table {
-  width: 55%;
-  border: 1px #c5c5c500;
-  border-radius: 15px;
-  background-color: rgba(255, 255, 255, 0.844);
+width: 55%;
+border: 1px #c5c5c500;
+border-radius: 15px;
+background-color: rgba(255, 255, 255, 0.844);
 margin-bottom: 20px;
 text-align: left;
 color: #e7e7e7f1;
@@ -363,23 +362,23 @@ transition: opacity 0.5s;
 opacity: 0;
 }
 .pagination {
-  position: fixed;
-  top: 910px;
-  left: 260px;
-  text-align: center;
-  margin-top: 20px;
+position: fixed;
+top: 910px;
+left: 260px;
+text-align: center;
+margin-top: 20px;
 }
 
 .pagination .el-pagination__prev,
 .pagination .el-pagination__next,
 .pagination .el-pager li {
-  background-color: #2c2c2e;
-  color: #ffffff;
+background-color: #2c2c2e;
+color: #ffffff;
 }
 
 .pagination .el-pagination__prev:hover,
 .pagination .el-pagination__next:hover,
 .pagination .el-pager li:hover {
-  background-color: #444;
+background-color: #444;
 }
 </style>
