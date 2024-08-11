@@ -27,19 +27,25 @@ public class DashboardController {
     public ResultBean<Map<String, Integer>> getCategoryDistribution() {
         return dashboardService.getCategoryDistribution();
     }
-
-    @GetMapping("/sdk-stats/heatmap")
-    public ResultBean<Map<String, Map<String, Integer>>> getHeatmapData(@RequestParam(value = "sensitiveOnly", defaultValue = "false") boolean sensitiveOnly) {
-        return dashboardService.getHeatmapData(sensitiveOnly);
-    }
+//
+//    @GetMapping("/sdk-stats/heatmap")
+//    public ResultBean<Map<String, Map<String, Integer>>> getHeatmapData(@RequestParam(value = "sensitiveOnly", defaultValue = "false") boolean sensitiveOnly) {
+//        return dashboardService.getHeatmapData(sensitiveOnly);
+//    }
 
     @GetMapping("/sdk-stats/permission-distribution")
     public ResultBean<Map<String, Integer>> getPermissionDistribution(@RequestParam int category) {
         return dashboardService.getPermissionDistribution(category);
     }
 
+//    @GetMapping("/sdk-stats/sensitive-data")
+//    public ResultBean<Map<String, Object>> getSensitiveData() {
+//        return dashboardService.getSensitiveData();
+//    }
+
     @GetMapping("/sdk-stats/sensitive-data")
-    public ResultBean<Map<String, Object>> getSensitiveData() {
-        return dashboardService.getSensitiveData();
+    public ResultBean<Map<String, Object>> getSensitiveData(@RequestParam(defaultValue = "1") int page,
+                                                            @RequestParam(defaultValue = "10") int pageSize) {
+        return dashboardService.getSensitiveData(page, pageSize);
     }
 }

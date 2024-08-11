@@ -7,6 +7,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 
+import java.sql.Timestamp;
 import java.util.List;
 import java.util.Optional;
 
@@ -35,5 +36,8 @@ public interface SdkDetectTaskMapper extends BaseMapper<SdkDetectTask> {
 
     @Select("SELECT * FROM sdk_detect_task WHERE sha256_code = #{sha256Code} ORDER BY end_time DESC LIMIT 1")
     SdkDetectTask getLatestTaskBySha256Code(@Param("sha256Code") String sha256Code);
+
+    @Select("SELECT * FROM sdk_detect_task WHERE task_status = #{status} AND start_time < #{timestamp}")
+    List<SdkDetectTask> findInProgressTasksStartedBefore(@Param("timestamp") Timestamp timestamp, @Param("status") int status);
 
 }

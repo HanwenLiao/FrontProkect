@@ -1,5 +1,6 @@
 package com.huawei.demo.sdkcenter.service;
 
+import com.huawei.demo.sdkcenter.constant.enums.TaskStatus;
 import com.huawei.demo.sdkcenter.entity.dao.SdkDetectTask;
 import com.huawei.demo.sdkcenter.entity.dao.SdkInfo;
 import com.huawei.demo.sdkcenter.entity.dao.mapper.DetectReportMapper;
@@ -15,6 +16,8 @@ import org.springframework.web.bind.annotation.CrossOrigin;
 
 import java.io.IOException;
 import java.sql.Timestamp;
+import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 @CrossOrigin
 @Service
@@ -76,6 +79,27 @@ public class SdkDetectTaskService {
             } catch (Exception e) {
                 log.error("Failed to retry detection for SDK with SHA256: {}", sdkInfo.getSha256Code(), e);
             }
+        }
+    }
+
+    @Scheduled(cron = "0 0 */2 * * ?")
+    public void updateOverdueTasks() {
+        log.debug("Executing scheduled task to update overdue detection tasks");
+
+        // 获取当前时间并减去2小时
+        LocalDateTime twoHoursAgo = LocalDateTime.now().minusHours(2);
+
+        // 将 LocalDateTime 转换为 Timestamp
+        Timestamp timestampTwoHoursAgo = Timestamp.valueOf(twoHoursAgo);
+
+        // 获取所有符合条件的任务
+        List<SdkDetectTask> overdueTasks = sdkDetectTaskMapper.findInProgressTasksStartedBefore(timestampTwoHoursAgo, TaskStatus.IN_PROGRESS.getValue());
+
+        for (SdkDetectTask task : overdueTasks) {
+            task.setTaskStatus(TaskStatus.FAILED.getValue());
+            task.setEndTime(Timestamp.from(Instant.now()));
+            sdkDetectTaskMapper.updateById(task);
+            log.debug("Updated task with ID: {} to FAILED status", task.getId());
         }
     }
 }
