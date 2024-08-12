@@ -2,7 +2,9 @@ package com.huawei.demo.sdkcenter.entity.dao.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.huawei.demo.sdkcenter.entity.dao.SdkDetectTask;
+import com.huawei.demo.sdkcenter.entity.dao.SdkDetectTaskPermission;
 import com.huawei.demo.sdkcenter.entity.resp.SdkDetectTaskHistoryResp;
+import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
